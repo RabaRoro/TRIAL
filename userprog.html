@@ -1,0 +1,212 @@
+<!-- userprog.html -->
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Student Progress Report</title>
+    <script src="tailwind.js"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { "border-stable": "#E5E7EB", "primary": "#b61722", "secondary": "#555f6f", "tertiary": "#006765", "background": "#f9f9ff", "on-surface": "#151c27" } } }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-sans p-4 md:p-8">
+
+    <main class="max-w-[1024px] mx-auto space-y-8">
+        
+        <!-- Loading State -->
+        <div id="loading-screen" class="text-center py-20">
+            <div class="animate-spin inline-block w-10 h-10 border-[4px] border-current border-t-transparent text-primary rounded-full mb-4" role="status"></div>
+            <h2 class="text-xl font-bold text-slate-800">Fetching Student Data...</h2>
+            <p class="text-slate-500 text-sm mt-1">Pulling latest records from Google Sheets</p>
+        </div>
+
+        <!-- Dashboard Content (Hidden until loaded) -->
+        <div id="dashboard-content" class="hidden space-y-8">
+            
+            <header class="bg-white border border-border-stable p-6 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <div id="display-initial" class="w-14 h-14 rounded-full bg-red-100 border-2 border-red-800 flex items-center justify-center text-red-800 font-bold text-2xl uppercase">
+                        <!-- Filled by JS -->
+                    </div>
+                    <div>
+                        <h1 id="display-name" class="text-2xl font-bold tracking-tight text-slate-800">Student Name</h1>
+                        <p id="display-details" class="text-secondary text-sm mt-1 font-medium">email@example.com • Batch 01</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1.5 rounded-full border border-green-200">
+                        Live Sync Active
+                    </span>
+                    <p class="text-secondary text-xs mt-2" id="report-timestamp">Last updated: --</p>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <section class="bg-white border border-border-stable p-6 rounded-xl shadow-sm space-y-4">
+                    <h2 class="text-xs font-bold text-secondary uppercase tracking-wider">Vocab & Kanji Progress</h2>
+                    <div>
+                        <div class="flex justify-between text-sm font-bold mb-1">
+                            <span>Vocab Mastery</span>
+                            <span id="vocab-percent" class="text-primary">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                            <div id="vocab-bar" class="bg-primary h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm font-bold mb-1">
+                            <span>Kanji Mastery</span>
+                            <span id="kanji-percent" class="text-tertiary">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                            <div id="kanji-bar" class="bg-tertiary h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white border border-border-stable p-6 rounded-xl shadow-sm flex flex-col justify-center">
+                    <h2 class="text-xs font-bold text-secondary uppercase tracking-wider mb-2">Overall Database Split</h2>
+                    <p class="text-3xl font-extrabold text-primary mb-2"><span id="count-mastered">0</span> <span class="text-sm font-bold text-secondary">Mastered Words</span></p>
+                    <div class="flex gap-4 text-sm font-bold text-secondary">
+                        <span class="bg-amber-50 text-amber-800 px-3 py-1 rounded-lg border border-amber-200"><span id="count-learning">0</span> Learning</span>
+                        <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg border border-gray-200"><span id="count-unseen">0</span> Unseen</span>
+                    </div>
+                </section>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <section class="bg-white border border-border-stable rounded-xl p-6 shadow-sm lg:col-span-2">
+                    <h3 class="text-lg font-bold mb-4 text-slate-800">Lesson Performance Breakdown</h3>
+                    <div id="lesson-breakdown-list" class="space-y-4 max-h-[450px] overflow-y-auto pr-2"></div>
+                </section>
+
+                <section class="bg-white border border-border-stable rounded-xl p-6 shadow-sm">
+                    <h3 class="text-lg font-bold mb-1 text-red-700">Troublesome Words</h3>
+                    <p class="text-xs text-secondary mb-4">Words with recorded errors.</p>
+                    <div id="troublesome-container" class="space-y-3 max-h-[450px] overflow-y-auto pr-2"></div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // INSERT YOUR WEB APP URL HERE
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwj0aewYji5ZQRvXTxhTV8LbGQ2kMl1KdrYM9q7QqOSi1DLDNtHKeNWLuiC_Rrh15yd/exec";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const email = params.get('email');
+
+            if (!email) {
+                alert('No student email provided in the URL parameter.');
+                document.getElementById('loading-screen').innerHTML = '<h2 class="text-xl font-bold text-red-600">Error: Missing Email Parameter</h2>';
+                return;
+            }
+
+            try {
+                // Fetch data dynamically from Google Sheets based on the email
+                const res = await fetch(`${SCRIPT_URL}?action=get_progress&email=${encodeURIComponent(email)}`);
+                const json = await res.json();
+
+                if (json.success) {
+                    document.getElementById('loading-screen').classList.add('hidden');
+                    document.getElementById('dashboard-content').classList.remove('hidden');
+                    renderDashboard(json.data);
+                } else {
+                    document.getElementById('loading-screen').innerHTML = `<h2 class="text-xl font-bold text-red-600">${json.message}</h2>`;
+                }
+            } catch (err) {
+                document.getElementById('loading-screen').innerHTML = '<h2 class="text-xl font-bold text-red-600">Network Error. Could not connect to database.</h2>';
+                console.error(err);
+            }
+        });
+
+        function renderDashboard(userData) {
+            // Render User Info Header
+            document.getElementById('display-name').textContent = userData.name || "Student";
+            document.getElementById('display-initial').textContent = (userData.name || "S")[0];
+            document.getElementById('display-details').textContent = `${userData.email} • ${userData.batch}`;
+
+            const parsed = userData.breakdown;
+
+            if (parsed.lastUpdated) {
+                document.getElementById('report-timestamp').innerText = `Last updated: ${new Date(parsed.lastUpdated).toLocaleString()}`;
+            }
+
+            // Render overall stats
+            if (parsed.overallStats) {
+                const stats = parsed.overallStats;
+                document.getElementById('vocab-percent').textContent = (stats.vocab?.percentage || 0) + '%';
+                document.getElementById('vocab-bar').style.width = (stats.vocab?.percentage || 0) + '%';
+                
+                document.getElementById('kanji-percent').textContent = (stats.kanji?.percentage || 0) + '%';
+                document.getElementById('kanji-bar').style.width = (stats.kanji?.percentage || 0) + '%';
+
+                document.getElementById('count-mastered').textContent = stats.overall?.mastered || 0;
+                document.getElementById('count-learning').textContent = stats.overall?.learning || 0;
+                document.getElementById('count-unseen').textContent = stats.overall?.unseen || 0;
+            }
+
+            // Render lesson breakdown
+            const lessonList = document.getElementById('lesson-breakdown-list');
+            lessonList.innerHTML = '';
+            if (Array.isArray(parsed.lessonBreakdown) && parsed.lessonBreakdown.length > 0) {
+                parsed.lessonBreakdown.forEach(l => {
+                    const pct = Math.round((l.mastered / l.total) * 100) || 0;
+                    const typeLabel = l.type === 'kanji' ? 'KANJI' : 'VOCAB';
+                    const typeColor = l.type === 'kanji' ? 'text-tertiary bg-tertiary/10' : 'text-primary bg-primary/10';
+                    const barColor = l.type === 'kanji' ? 'bg-tertiary' : 'bg-primary';
+                    const labelStr = isNaN(parseInt(l.id)) ? l.id : `Lesson ${l.id}`;
+                    const cleanName = l.name ? (l.name.includes(':') ? l.name.split(':')[1] : l.name) : '';
+
+                    const div = document.createElement('div');
+                    div.className = "border-b border-gray-100 pb-3 last:border-0";
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center mb-1 text-sm">
+                            <span class="font-bold text-on-surface flex items-center gap-2">
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-sm ${typeColor}">${typeLabel}</span>
+                                ${labelStr} <span class="font-normal text-secondary">${cleanName ? `— ${cleanName}` : ''}</span>
+                            </span>
+                            <span class="font-mono text-xs font-bold text-secondary">${l.mastered}/${l.total} (${pct}%)</span>
+                        </div>
+                        <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                            <div class="${barColor} h-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                    `;
+                    lessonList.appendChild(div);
+                });
+            } else {
+                lessonList.innerHTML = `<p class="text-sm text-secondary">No lesson breakdown recorded.</p>`;
+            }
+
+            // Render troublesome words
+            const troubleContainer = document.getElementById('troublesome-container');
+            troubleContainer.innerHTML = '';
+            if (Array.isArray(parsed.troublesomeWords) && parsed.troublesomeWords.length > 0) {
+                parsed.troublesomeWords.forEach(w => {
+                    const div = document.createElement('div');
+                    div.className = "p-3 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center";
+                    const targetRomaji = w.romaji || w.correctAnswerRomaji || '';
+                    const targetMeaning = w.meaningEnglish || w.translationEnglish || w.meaning || '';
+
+                    div.innerHTML = `
+                        <div>
+                            <p class="font-bold text-red-900 text-lg">${w.kanji || w.japanese}</p>
+                            <p class="text-xs font-mono text-secondary">${targetRomaji} • ${targetMeaning}</p>
+                        </div>
+                        <div class="text-right text-xs bg-white px-2 py-1 rounded border border-red-200 font-bold text-red-700">
+                            Fails: ${w.stats ? w.stats.incorrect : 0}
+                        </div>
+                    `;
+                    troubleContainer.appendChild(div);
+                });
+            } else {
+                troubleContainer.innerHTML = `<p class="text-sm text-secondary text-center py-4">No troublesome words logged!</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

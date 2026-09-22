@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Quiz Module</title>
+    <link rel="icon" type="image/x-icon" href="ico.png"> 
+    <script src="tailwind.js"></script>
+   
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "border-stable": "#E5E7EB", "primary": "#b61722", "secondary": "#555f6f",
+                        "tertiary": "#006765", "background": "#f9f9ff"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-slate-900 min-h-screen flex flex-col font-sans">
+
+    <div class="fixed top-0 left-0 w-full h-1 bg-gray-200 z-50">
+        <div id="top-progress" class="h-full bg-primary transition-all duration-300" style="width: 0%;"></div>
+    </div>
+
+    <header class="bg-white border-b border-border-stable">
+        <div class="flex justify-between items-center w-full px-4 md:px-8 max-w-[1024px] mx-auto h-16">
+            <div class="text-xl font-bold text-primary flex items-center gap-2"><div class="w-10 h-10 sm:w-12 sm:h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white text-2xl sm:text-3xl font-bold">日</div>Nihongo Nichi</div>
+            <nav class="hidden md:flex gap-6 items-center">
+                <a class="text-secondary hover:text-primary" href="index.html">Dashboard</a>
+                <a class="text-primary font-bold border-b-2 border-primary pb-1" href="quiz.html">Quiz</a>
+                <a class="text-secondary hover:text-primary" href="library.html">Library</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4 pb-32 md:pb-4 overflow-y-auto">
+        <div class="w-full max-w-2xl">
+            
+            <div id="config-panel" class="bg-white border border-border-stable rounded-xl p-6 md:p-8 shadow-sm">
+                <h2 class="text-2xl font-bold mb-1">Configure Target Assessment</h2>
+                <p class="text-sm text-secondary mb-4">Select datasets, focus parameters, and chapters for your custom session.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                    <div>
+                        <label class="block text-xs font-bold text-secondary mb-1 uppercase tracking-wider">Include Datasets</label>
+                        <div class="flex flex-wrap sm:flex-nowrap gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-xs sm:text-sm">
+                            <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                                <input type="checkbox" id="target-include-vocab" checked onchange="populateConfigLayout()" class="rounded text-primary focus:ring-0"> Vocab
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                                <input type="checkbox" id="target-include-kanji" checked onchange="populateConfigLayout()" class="rounded text-primary focus:ring-0"> Kanji
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                                <input type="checkbox" id="target-include-verb" checked onchange="populateConfigLayout()" class="rounded text-primary focus:ring-0"> Verbs
+                            </label>
+                        </div>
+
+                        <!-- KANJI MODES PANEL (conditionally shown based on Kanji checkbox) -->
+                        <div id="kanji-options-container" class="mt-3">
+                            <label class="block text-xs font-bold text-secondary mb-1 uppercase tracking-wider">Kanji Modes</label>
+                            <div class="flex flex-wrap sm:flex-nowrap gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-xs sm:text-sm">
+                                <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                                    <input type="checkbox" id="kanji-mode-kun" checked class="rounded text-primary focus:ring-0"> Kun'yomi (Single)
+                                </label>
+                                <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                                    <input type="checkbox" id="kanji-mode-on" checked class="rounded text-primary focus:ring-0"> On'yomi (Compound)
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-secondary mb-1 uppercase tracking-wider">Quiz Focus Modes</label>
+                        <div class="flex flex-col gap-2 bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-xs sm:text-sm">
+                            <label class="flex items-center gap-2 cursor-pointer font-medium">
+                                <input type="checkbox" id="quiz-mode-standard" checked class="rounded text-primary focus:ring-0"> Standard (All Words)
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer font-medium">
+                                <input type="checkbox" id="quiz-mode-unmastered" class="rounded text-primary focus:ring-0"> Unmastered Only (Unseen + Learning)
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer font-medium">
+                                <input type="checkbox" id="quiz-mode-troublesome" class="rounded text-primary focus:ring-0"> Troublesome Only (Previously Failed)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-end mb-2">
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider">Target Chapters</label>
+                    <div class="flex gap-2">
+                        <button onclick="toggleDeckOptions(true)" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[10px] font-bold uppercase tracking-wider">Check All</button>
+                        <button onclick="toggleDeckOptions(false)" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[10px] font-bold uppercase tracking-wider">Uncheck All</button>
+                    </div>
+                </div>
+                
+                <div id="lesson-checkbox-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[230px] overflow-y-auto pr-2 mb-6 border-y border-gray-100 py-3"></div>
+                
+                <button onclick="buildEvaluationSession()" class="w-full bg-primary text-white py-4 font-bold rounded-lg hover:bg-red-800 transition-colors flex items-center justify-center gap-2 shadow-md">
+                    <svg class="inline-block w-[1em] h-[1em] align-middle text-xl" viewBox="0 -960 960 960" fill="currentColor"><path d="m402.67-187.33 255-306H484.33L518-759.67l-230.33 333h149l-34 239.34ZM320-80l40-280H160l360-520h80l-40 320h240L400-80h-80Zm153-394Z"/></svg> Initialize Session 
+                </button>
+            </div>
+
+            <div id="quiz-panel" class="hidden bg-white border border-border-stable rounded-xl p-6 md:p-10 shadow-sm">
+                <div class="flex justify-between items-center mb-6">
+                    <span id="card-chapter-tag" class="text-xs font-bold text-tertiary uppercase bg-teal-50 border border-teal-100 px-3 py-1 rounded-full">Lesson 1</span>
+                    <span id="tracker-fraction" class="text-xs font-mono font-bold text-secondary">Card 1 / 10</span>
+                </div>
+
+                <div class="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 mb-6 relative">
+                    <button id="audio-speak-btn" onclick="triggerVoiceSpeak()" class="absolute top-3 right-3 text-gray-300 cursor-not-allowed" disabled>
+                        <svg class="inline-block w-[1em] h-[1em] align-middle text-xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M382-306.67 653.33-480 382-653.33v346.66ZM480-80q-82.33 0-155.33-31.5-73-31.5-127.34-85.83Q143-251.67 111.5-324.67T80-480q0-83 31.5-156t85.83-127q54.34-54 127.34-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82.33-31.5 155.33-31.5 73-85.5 127.34Q709-143 636-111.5T480-80Zm0-66.67q139.33 0 236.33-97.33t97-236q0-139.33-97-236.33t-236.33-97q-138.67 0-236 97-97.33 97-97.33 236.33 0 138.67 97.33 236 97.33 97.33 236 97.33ZM480-480Z"/></svg>
+                    </button>
+                    <div class="inline-block text-center select-none overflow-hidden max-w-full px-2">
+                        <ruby id="display-japanese-char" class="font-bold tracking-wide text-4xl sm:text-5xl md:text-6xl text-slate-800 font-jp"></ruby>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-secondary mb-1 uppercase tracking-wider">Pronunciation Matching (Romaji)</label>
+                        <input id="input-kana-romaji" type="text" autocomplete="off" placeholder="e.g. watashi" class="w-full p-3.5 bg-white border border-border-stable rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none font-mono text-md transition-colors duration-200">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-secondary mb-1 uppercase tracking-wider">Target Translation Match (English or Bangla)</label>
+                        <input id="input-native-meaning" type="text" autocomplete="off" placeholder="e.g. I or আমি" class="w-full p-3.5 bg-white border border-border-stable rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-md transition-colors duration-200">
+                    </div>
+                </div>
+
+                <div id="alert-banner" class="hidden mt-5 p-3.5 rounded-lg text-center text-sm font-bold transition-all"></div>
+
+                <div class="mt-8 pt-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row gap-4 sm:gap-3 items-center justify-between">
+                    <button onclick="terminateSessionEarly()" class="text-xs font-bold text-secondary hover:text-primary uppercase tracking-widest flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto py-2 sm:py-0">
+                        <svg class="inline-block w-[1em] h-[1em] align-middle text-sm" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg> Abort
+                    </button>
+                    
+                    <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <button id="action-fail-continue" onclick="handleFailedCardAction(true)" class="hidden w-full sm:w-auto px-5 py-3 sm:py-2 bg-primary text-white font-bold rounded text-sm hover:bg-red-800">Continue (Re-evaluate)</button>
+                        <button id="action-fail-skip" onclick="handleFailedCardAction(false)" class="hidden w-full sm:w-auto px-5 py-3 sm:py-2 bg-gray-200 text-slate-700 font-bold rounded text-sm hover:bg-gray-300">Skip (Remove)</button>
+                        
+                        <button id="action-trigger-check" onclick="processAttemptValidation()" class="w-full sm:w-auto px-6 py-3 sm:py-2 bg-primary text-white font-bold rounded hover:bg-red-800 transition-colors shadow">Verify Input</button>
+                        <button id="action-trigger-next" onclick="advanceSessionIndex()" class="hidden w-full sm:w-auto px-6 py-3 sm:py-2 bg-tertiary text-white font-bold rounded hover:bg-teal-800 transition-colors shadow">Continue →</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="results-panel" class="hidden bg-white border border-border-stable rounded-xl p-8 shadow-sm text-center">
+                <svg class="inline-block w-[1em] h-[1em] align-middle text-6xl text-primary mx-auto mb-2" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.43V2H7v8.43c0 2.52 1.54 4.77 3.88 5.67L10 22l2-1 2 1-.88-5.9c2.34-.9 3.88-3.15 3.88-5.67zM12 14c-1.66 0-3-1.34-3-3V4h6v7c0 1.66-1.34 3-3 3z"/></svg>
+                <h2 class="text-2xl font-extrabold mt-2 mb-1">Evaluation Assessment Concluded</h2>
+                <p class="text-sm text-secondary mb-6">Metrics generated reflect precision scores across selected datasets.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-sm mx-auto">
+                    <div class="p-4 bg-teal-50 border border-teal-200 rounded-xl">
+                        <p class="text-2xl font-black text-teal-800" id="stat-correct-count">0</p>
+                        <p class="text-xs font-bold uppercase text-teal-600 tracking-wider">Correct Cards</p>
+                    </div>
+                    <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
+                        <p class="text-2xl font-black text-red-800" id="stat-incorrect-count">0</p>
+                        <p class="text-xs font-bold uppercase text-red-600 tracking-wider">Fails Logged</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button onclick="buildEvaluationSession()" class="w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-red-800">Repeat Target Selection</button>
+                    <button onclick="location.reload()" class="w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-gray-100 text-slate-700 font-bold rounded-lg border border-gray-200 hover:bg-gray-200">Change Settings</button>
+                </div>
+            </div>
+
+        </div>
+        
+        <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-white border-t border-border-stable py-2 md:hidden">
+            <a class="flex flex-col items-center text-secondary" href="index.html">
+                <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M226.67-186.67h140v-246.66h226.66v246.66h140v-380L480-756.67l-253.33 190v380ZM160-120v-480l320-240 320 240v480H526.67v-246.67h-93.34V-120H160Zm320-352Z"/></svg>
+                <span class="text-[10px] font-bold">Home</span>
+            </a>
+            <a class="flex flex-col items-center text-primary" href="quiz.html">
+                <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M577.83-358.83Q590-371 590-388t-12.17-29.17q-12.16-12.16-29.16-12.16t-29.17 12.16Q507.33-405 507.33-388t12.17 29.17q12.17 12.16 29.17 12.16t29.16-12.16ZM522-473.33h51.33q1.34-29 7.67-42.84Q587.33-530 612-554q28-27.33 38.33-46.43 10.34-19.1 10.34-44.9 0-45.59-31.5-74.46-31.5-28.88-82.5-28.88-39 0-69.17 21.34Q447.33-706 434-668.67l48 20q10.33-25 26.5-37.83 16.17-12.83 38.17-12.83 27.85 0 45.26 15.83 17.4 15.83 17.4 40.83 0 18-8.66 32.17Q592-596.33 570-578.67q-32.33 29-40.17 46.17-7.83 17.17-7.83 59.17Zm-242 260q-27 0-46.83-19.84Q213.33-253 213.33-280v-533.33q0-27 19.84-46.84Q253-880 280-880h533.33q27 0 46.84 19.83Q880-840.33 880-813.33V-280q0 27-19.83 46.83-19.84 19.84-46.84 19.84H280Zm0-66.67h533.33v-533.33H280V-280ZM146.67-80q-27 0-46.84-19.83Q80-119.67 80-146.67v-600h66.67v600h600V-80h-600ZM280-813.33V-280v-533.33Z"/></svg>
+                <span class="text-[10px] font-bold">Quiz</span>
+            </a>
+            <a class="flex flex-col items-center text-secondary" href="library.html">
+               <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M480-60q-76-68.67-168.67-105.33Q218.67-202 120-202v-432.67q96.33 0 189 40.84Q401.67-553 480-478.67 558.33-553 651-593.83q92.67-40.84 189-40.84V-202q-99 0-191.5 36.67Q556-128.67 480-60Zm0-86q68.33-49.67 142.33-79.33 74-29.67 151-38V-562q-69.66 11.67-143.5 53.83Q556-466 480-392.67q-80.67-76-152.17-117.16Q256.33-551 186.67-562v298.67q77 8.33 151 38 74 29.66 142.33 79.33ZM371.33-653.33Q326-698.67 326-764t45.33-110.67Q416.67-920 482-920t110.67 45.33Q638-829.33 638-764t-45.33 110.67Q547.33-608 482-608t-110.67-45.33Zm173.84-47.5Q571.33-727 571.33-764t-26.16-63.17Q519-853.33 482-853.33t-63.17 26.16Q392.67-801 392.67-764t26.16 63.17Q445-674.67 482-674.67t63.17-26.16ZM482-764Zm-2 371.33Z"/></svg> 
+                <span class="text-[10px] font-bold">Library</span>
+            </a>
+        </nav>
+    </main>
+
+    <script src="data-vocab.js"></script>
+    <script src="data-kanji.js"></script>
+    <script src="dict-plt.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let selectedLessonSet = new Set();
+        let sessionQueue = [];
+        let currentQueueIndex = 0;
+        let attemptCounter = 0;
+        let countedCorrect = 0;
+        let countedIncorrect = 0;
+        let activeCard = null;
+        let canListen = false;
+        let isExhaustedState = false;
+        let autoAdvanceTimer = null; 
+
+        function normalizeText(text) {
+            if (!text) return "";
+            return text.toLowerCase()
+                .replace(/-/g, ' ')
+                .replace(/\s*\(.*?\)\s*/g, ' ')
+                .replace(/\s*\[.*?\]\s*/g, ' ')
+                .replace(/['?.!~,]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function isMatch(userInput, correctAnswer) {
+            if (!userInput || !correctAnswer) return false;
+            
+            const user = normalizeText(userInput);
+            if (user.length === 0) return false;
+
+            const correct = normalizeText(correctAnswer);
+
+            if (correct.includes('/')) {
+                const options = correct.split('/').map(opt => normalizeText(opt));
+                return options.some(opt => user === opt);   
+            }
+
+            return user === correct;
+        }
+
+        function populateConfigLayout() {
+            const vocabEnabled = document.getElementById('target-include-vocab').checked;
+            const kanjiEnabled = document.getElementById('target-include-kanji').checked;
+            const verbEnabled = document.getElementById('target-include-verb').checked;
+            const wrapper = document.getElementById('lesson-checkbox-grid');
+            
+            // Toggle Kanji Modes Panel
+            const kanjiOptionsContainer = document.getElementById('kanji-options-container');
+            if (kanjiOptionsContainer) {
+                if (kanjiEnabled) {
+                    kanjiOptionsContainer.classList.remove('hidden');
+                } else {
+                    kanjiOptionsContainer.classList.add('hidden');
+                }
+            }
+
+            const vocab = typeof vocabData !== 'undefined' ? vocabData : [];
+            const kanji = typeof kanjiData !== 'undefined' ? kanjiData : [];
+            const verbs = typeof dictData !== 'undefined' ? dictData : [];
+            
+            let availableLessonNumbers = new Set();
+            if (vocabEnabled) vocab.forEach(v => availableLessonNumbers.add(v.lesson));
+            if (kanjiEnabled) kanji.forEach(k => availableLessonNumbers.add(k.lesson));
+            if (verbEnabled) verbs.forEach(v => availableLessonNumbers.add(v.lesson));
+            
+            wrapper.innerHTML = '';
+            
+            const sortedLessons = Array.from(availableLessonNumbers).sort((a,b) => {
+                const numA = parseInt(a);
+                const numB = parseInt(b);
+                if (isNaN(numA) && isNaN(numB)) return String(a).localeCompare(String(b));
+                if (isNaN(numA)) return 1;
+                if (isNaN(numB)) return -1;
+                return numA - numB;
+            });
+            
+            if (sortedLessons.length === 0) {
+                wrapper.innerHTML = '<p class="text-xs text-secondary p-4 italic">No chapters available for the selected datasets.</p>';
+                return;
+            }
+
+            sortedLessons.forEach(n => {
+                const item = vocab.find(v => v.lesson === n) || kanji.find(k => k.lesson === n) || verbs.find(v => v.lesson === n);
+                const cleanName = item.lessonName ? (item.lessonName.split(':')[1] || item.lessonName) : `Lesson Content ${n}`;
+                
+                const lbl = document.createElement('label');
+                lbl.className = "flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg cursor-pointer transition-colors";
+                
+                const isChecked = selectedLessonSet.has(n) ? 'checked' : '';
+                
+                lbl.innerHTML = `
+                    <input type="checkbox" value="${n}" ${isChecked} onchange="handleToggleSelection(this)" class="w-4 h-4 text-primary accent-primary rounded border-gray-300">
+                    <span class="text-xs font-bold text-slate-800">Ch. ${n}<span class="block text-[10px] font-normal text-secondary truncate max-w-[200px]">${cleanName}</span></span>
+                `;
+                wrapper.appendChild(lbl);
+            });
+        }
+
+        function handleToggleSelection(box) {
+            const v = isNaN(box.value) ? box.value : Number(box.value);
+            if (box.checked) selectedLessonSet.add(v);
+            else selectedLessonSet.delete(v);
+        }
+
+        function toggleDeckOptions(checkAll) {
+            const boxes = document.querySelectorAll('#lesson-checkbox-grid input[type="checkbox"]');
+            boxes.forEach(b => {
+                b.checked = checkAll;
+                handleToggleSelection(b);
+            });
+        }
+
+        function buildEvaluationSession() {
+            if (selectedLessonSet.size === 0) return alert("Select at least one lesson block to initialize dynamic tracking.");
+            
+            let combinedSource = [];
+            
+            // Vocab Data
+            if (document.getElementById('target-include-vocab').checked && typeof vocabData !== 'undefined') {
+                combinedSource = [...combinedSource, ...vocabData];
+            }
+            
+            // Kanji Data
+            if (document.getElementById('target-include-kanji').checked && typeof kanjiData !== 'undefined') {
+                const kunEnabled = document.getElementById('kanji-mode-kun').checked;
+                const onEnabled = document.getElementById('kanji-mode-on').checked;
+                
+                if (!kunEnabled && !onEnabled) {
+                    return alert("Please select at least one Kanji Mode (Kun'yomi or On'yomi) before initializing.");
+                }
+
+                kanjiData.forEach(k => {
+                    // Push the root Kanji (Kun'yomi / Single Kanji)
+                    if (kunEnabled) {
+                        combinedSource.push(k);
+                    }
+                    
+                    // Push its examples if they exist (On'yomi / Compound Kanji)
+                    if (onEnabled && k.examples && Array.isArray(k.examples)) {
+                        k.examples.forEach(ex => {
+                            combinedSource.push({
+                                lesson: k.lesson,
+                                lessonName: k.lessonName,
+                                japanese: ex.japanese,
+                                romaji: ex.romaji,
+                                meaningBangla: ex.meaningBangla,
+                                meaningEnglish: ex.meaningEnglish,
+                                type: 'kanji-example'
+                            });
+                        });
+                    }
+                });
+            }
+            
+            // Verb Data
+            if (document.getElementById('target-include-verb').checked && typeof dictData !== 'undefined') {
+                combinedSource = [...combinedSource, ...dictData];
+            }
+
+            if (combinedSource.length === 0) return alert("Please select at least one dataset type.");
+
+            const baseDeck = combinedSource.filter(v => selectedLessonSet.has(v.lesson));
+            
+            const isStandardChecked = document.getElementById('quiz-mode-standard').checked;
+            const isUnmasteredChecked = document.getElementById('quiz-mode-unmastered').checked;
+            const isTroublesomeChecked = document.getElementById('quiz-mode-troublesome').checked;
+
+            if (!isStandardChecked && !isUnmasteredChecked && !isTroublesomeChecked) {
+                return alert("Please select at least one Quiz Focus Mode before initializing.");
+            }
+
+            let finalDeck = [];
+
+            if (isStandardChecked) {
+                finalDeck = [...baseDeck];
+            } else {
+                let matchingSet = new Set();
+                
+                if (isUnmasteredChecked) {
+                    baseDeck.filter(v => getWordStatus(v.japanese) !== 'Mastered').forEach(v => matchingSet.add(v));
+                }
+                
+                if (isTroublesomeChecked) {
+                    const progress = getProgress();
+                    baseDeck.filter(v => progress[v.japanese] && progress[v.japanese].incorrect > 0).forEach(v => matchingSet.add(v));
+                }
+                
+                finalDeck = Array.from(matchingSet);
+            }
+
+            if (finalDeck.length === 0) {
+                return alert("No items found matching the selected mode within these chapters.");
+            }
+
+            sessionQueue = [...finalDeck].sort(() => Math.random() - 0.5);
+            currentQueueIndex = 0; countedCorrect = 0; countedIncorrect = 0;
+
+            document.getElementById('config-panel').classList.add('hidden');
+            document.getElementById('results-panel').classList.add('hidden');
+            document.getElementById('quiz-panel').classList.remove('hidden');
+            mountCardIndex();
+        }
+
+        function setAudioListeningState(enabled) {
+            canListen = enabled;
+            const btn = document.getElementById('audio-speak-btn');
+            if (enabled) {
+                btn.className = "absolute top-3 right-3 text-secondary hover:text-primary transition-colors cursor-pointer";
+                btn.removeAttribute('disabled');
+            } else {
+                btn.className = "absolute top-3 right-3 text-gray-300 cursor-not-allowed";
+                btn.setAttribute('disabled', 'true');
+            }
+        }
+
+        function mountCardIndex() {
+            if (autoAdvanceTimer) {
+                clearTimeout(autoAdvanceTimer);
+                autoAdvanceTimer = null;
+            }
+
+            if (currentQueueIndex >= sessionQueue.length) {
+                return showResultsPanelSummary();
+            }
+
+            activeCard = sessionQueue[currentQueueIndex];
+            attemptCounter = 0;
+            isExhaustedState = false;
+            setAudioListeningState(false);
+
+            const rubyWrapper = document.getElementById('display-japanese-char');
+            if (activeCard.kanji && activeCard.kanji !== "") {
+                rubyWrapper.innerHTML = `${activeCard.kanji}<rt class="text-sm tracking-normal font-normal text-secondary select-none pb-1">${activeCard.japanese}</rt>`;
+            } else {
+                rubyWrapper.innerHTML = `${activeCard.japanese}`;
+            }
+
+            document.getElementById('card-chapter-tag').textContent = `Lesson ${activeCard.lesson}`;
+            
+            const romIn = document.getElementById('input-kana-romaji');
+            const meanIn = document.getElementById('input-native-meaning');
+            
+            romIn.value = ''; meanIn.value = '';
+            romIn.disabled = false; meanIn.disabled = false;
+            romIn.className = meanIn.className = "w-full p-3.5 bg-white border border-border-stable rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none text-md transition-colors duration-200";
+
+            document.getElementById('alert-banner').className = "hidden mt-5 p-3.5 rounded-lg text-center text-sm font-bold transition-all";
+            
+            document.getElementById('action-trigger-check').classList.remove('hidden');
+            document.getElementById('action-trigger-next').classList.add('hidden');
+            document.getElementById('action-fail-continue').classList.add('hidden');
+            document.getElementById('action-fail-skip').classList.add('hidden');
+
+            renderVisualProgressBars();
+            setTimeout(() => romIn.focus(), 150);
+        }
+
+        function processAttemptValidation() {
+            if (isExhaustedState) {
+                forceAnswerReveal();
+                return;
+            }
+
+            const userRomaji = document.getElementById('input-kana-romaji').value;
+            const userMeaning = document.getElementById('input-native-meaning').value;
+
+            const targetRomaji = activeCard.romaji || activeCard.correctAnswerRomaji;
+            const targetEnglish = activeCard.meaningEnglish || activeCard.translationEnglish;
+            const targetBangla = activeCard.meaningBangla || activeCard.translationBangla;
+
+            const isRomajiValid = isMatch(userRomaji, targetRomaji);
+            const isMeaningValid = isMatch(userMeaning, targetEnglish) || (targetBangla && isMatch(userMeaning, targetBangla));
+
+            attemptCounter++;
+            const banner = document.getElementById('alert-banner');
+            banner.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-amber-100', 'text-amber-800');
+
+            if (isRomajiValid && isMeaningValid) {
+                banner.innerHTML = `<span class="flex justify-center items-center gap-1"><svg class="inline-block w-[1em] h-[1em] align-middle text-lg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> Correct! Moving forward...</span>`;
+                banner.classList.add('bg-green-100', 'text-green-800');
+                document.getElementById('input-kana-romaji').className = "w-full p-3.5 bg-green-50 border border-green-300 rounded-lg text-green-900 outline-none text-md";
+                document.getElementById('input-native-meaning').className = "w-full p-3.5 bg-green-50 border border-green-300 rounded-lg text-green-900 outline-none text-md";
+                
+                countedCorrect++;
+                recordAttempt(activeCard.japanese, true, attemptCounter === 1);
+                
+                setAudioListeningState(true);
+                triggerVoiceSpeak();
+                lockFormInputs();
+
+                autoAdvanceTimer = setTimeout(() => {
+                    if (!document.getElementById('quiz-panel').classList.contains('hidden')) {
+                        advanceSessionIndex();
+                    }
+                }, 1800);
+
+            } else if (attemptCounter >= 3) {
+                banner.textContent = `❌ Attempts Exhausted. Press Enter again to reveal correct translation keys.`;
+                banner.classList.add('bg-red-100', 'text-red-800');
+                countedIncorrect++;
+                recordAttempt(activeCard.japanese, false);
+                isExhaustedState = true;
+            } else {
+                banner.textContent = `⚠️ Invalid Entry. Attempt ${attemptCounter}/3 processed. Check character spellings.`;
+                banner.classList.add('bg-amber-100', 'text-amber-800');
+                
+                if (!isRomajiValid) document.getElementById('input-kana-romaji').className = "w-full p-3.5 bg-red-50 border border-red-300 rounded-lg focus:outline-none text-md transition-colors duration-200";
+                else document.getElementById('input-kana-romaji').className = "w-full p-3.5 bg-white border border-border-stable rounded-lg focus:outline-none text-md transition-colors duration-200";
+                
+                if (!isMeaningValid) document.getElementById('input-native-meaning').className = "w-full p-3.5 bg-red-50 border border-red-300 rounded-lg focus:outline-none text-md transition-colors duration-200";
+                else document.getElementById('input-native-meaning').className = "w-full p-3.5 bg-white border border-border-stable rounded-lg focus:outline-none text-md transition-colors duration-200";
+            }
+        }
+
+        function lockFormInputs() {
+            document.getElementById('input-kana-romaji').disabled = true;
+            document.getElementById('input-native-meaning').disabled = true;
+            document.getElementById('action-trigger-check').classList.add('hidden');
+            document.getElementById('action-trigger-next').classList.remove('hidden');
+            document.getElementById('action-trigger-next').focus();
+        }
+
+        function forceAnswerReveal() {
+            setAudioListeningState(true);
+            document.getElementById('input-kana-romaji').disabled = true;
+            document.getElementById('input-native-meaning').disabled = true;
+            
+            const targetRomaji = activeCard.romaji || activeCard.correctAnswerRomaji;
+            const targetEnglish = activeCard.meaningEnglish || activeCard.translationEnglish;
+            const targetBangla = activeCard.meaningBangla || activeCard.translationBangla || 'N/A';
+
+            const banner = document.getElementById('alert-banner');
+            banner.className = "mt-5 p-4 rounded-lg text-left text-sm font-mono bg-blue-50 border border-blue-200 text-blue-900";
+            banner.innerHTML = `
+                <p class="font-bold border-b border-blue-200 pb-1 mb-1 font-sans">Correct Target References:</p>
+                <p><strong>Romaji:</strong> ${targetRomaji}</p>
+                <p><strong>English:</strong> ${targetEnglish}</p>
+                <p><strong>Bangla:</strong> ${targetBangla}</p>
+            `;
+            
+            document.getElementById('action-trigger-check').classList.add('hidden');
+            document.getElementById('action-fail-continue').classList.remove('hidden');
+            document.getElementById('action-fail-skip').classList.remove('hidden');
+            document.getElementById('action-fail-continue').focus();
+        }
+
+        function handleFailedCardAction(shouldContinue) {
+            if (shouldContinue) {
+                const card = sessionQueue.splice(currentQueueIndex, 1)[0];
+                sessionQueue.push(card);
+            } else {
+                currentQueueIndex++;
+            }
+            mountCardIndex();
+        }
+
+        function advanceSessionIndex() {
+            if (autoAdvanceTimer) {
+                clearTimeout(autoAdvanceTimer);
+                autoAdvanceTimer = null;
+            }
+            currentQueueIndex++;
+            mountCardIndex();
+        }
+
+        function renderVisualProgressBars() {
+            const total = sessionQueue.length;
+            const pct = Math.round((currentQueueIndex / total) * 100) || 0;
+            document.getElementById('top-progress').style.width = `${pct}%`;
+            document.getElementById('tracker-fraction').textContent = `Card ${currentQueueIndex + 1} / ${total}`;
+        }
+
+        function triggerVoiceSpeak() {
+            if (activeCard && canListen) speakJapanese(activeCard.japanese);
+        }
+
+        function terminateSessionEarly() {
+            if (confirm("Forfeit active session calculations and drop history logs?")) location.reload();
+        }
+
+        function showResultsPanelSummary() {
+            document.getElementById('quiz-panel').classList.add('hidden');
+            document.getElementById('results-panel').classList.remove('hidden');
+            document.getElementById('stat-correct-count').textContent = countedCorrect;
+            document.getElementById('stat-incorrect-count').textContent = countedIncorrect;
+            document.getElementById('top-progress').style.width = "100%";
+        }
+
+        document.getElementById('input-kana-romaji').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('input-native-meaning').focus();
+            }
+        });
+
+        document.getElementById('input-native-meaning').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const chkBtn = document.getElementById('action-trigger-check');
+                const nxtBtn = document.getElementById('action-trigger-next');
+                
+                if (!chkBtn.classList.contains('hidden')) {
+                    processAttemptValidation();
+                } else if (!nxtBtn.classList.contains('hidden')) {
+                    advanceSessionIndex();
+                }
+            } else if (e.key === 'Backspace' && e.target.value === '') {
+                e.preventDefault();
+                document.getElementById('input-kana-romaji').focus();
+            }
+        });
+
+        window.onload = populateConfigLayout;
+
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.addEventListener('focus', function() {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>

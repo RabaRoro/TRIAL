@@ -1,0 +1,385 @@
+<!-- name=index.html -->
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dashboard | Japanese Mastery</title>
+    <link rel="icon" type="image/x-icon" href="ico.png"> 
+    <script src="tailwind.js"></script>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: { extend: { colors: { "border-stable": "#E5E7EB", "primary": "#b61722", "secondary": "#555f6f", "tertiary": "#006765", "background": "#f9f9ff", "on-surface": "#151c27" } } }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-sans pb-24 md:pb-8">
+
+    <header class="bg-white border-b border-border-stable sticky top-0 z-40 h-16">
+        <div class="flex justify-between items-center w-full px-4 md:px-8 max-w-[1024px] mx-auto h-16">
+            <!-- Left Side: Brand Logo -->
+            <div class="flex items-center gap-2 text-xl font-bold text-primary">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white text-3xl font-bold">日</div> 
+                <span>Nihongo Nichi</span>
+            </div>
+
+            <!-- Right Side: Desktop Nav + User Avatar -->
+            <div class="flex items-center gap-4 sm:gap-6 h-full">
+                <nav class="hidden md:flex items-center space-x-6 h-full">
+                    <a class="text-primary font-bold border-b-2 border-primary h-full flex items-center px-2" href="index.html">Dashboard</a>
+                    <a class="text-secondary hover:text-primary h-full flex items-center px-2" href="quiz.html">Quiz</a>
+                    <a class="text-secondary hover:text-primary h-full flex items-center px-2" href="library.html">Library</a>
+                </nav>
+
+                <!-- Symmetrical Sided Avatar Button -->
+                <button id="user-avatar-btn" onclick="showUserProfilePopup()" title="User Profile" class="w-10 h-10 rounded-full bg-red-50 border-2 border-red-800 flex items-center justify-center text-xl shadow-sm hover:scale-105 transition-transform cursor-pointer">
+                    <span id="user-avatar-display">🌸</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1024px] mx-auto px-4 md:px-8 py-8 space-y-8">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight mb-1">Performance Command Center</h1>
+            <p class="text-secondary">Real-time analytic tracking driven by your local response history.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <section class="bg-white border border-border-stable p-5 rounded-xl shadow-sm flex flex-col justify-between space-y-4">
+                <div>
+                    <h2 class="text-xs font-bold text-secondary uppercase tracking-wider">Vocab Mastery Progress</h2>
+                    <p class="text-2xl font-extrabold text-primary mt-0.5" id="vocab-percent">0%</p>
+                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
+                        <div id="vocab-progress-bar" class="bg-primary h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                <hr class="border-gray-100 my-1" />
+                <div>
+                    <h2 class="text-xs font-bold text-secondary uppercase tracking-wider">Kanji Mastery Progress</h2>
+                    <p class="text-2xl font-extrabold text-tertiary mt-0.5" id="kanji-percent">0%</p>
+                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
+                        <div id="kanji-progress-bar" class="bg-tertiary h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white border border-border-stable p-6 rounded-xl shadow-sm flex justify-between items-center">
+                <div>
+                    <h2 class="text-sm font-bold text-secondary uppercase tracking-wider">Database Split (Combined)</h2>
+                    <p class="text-2xl font-bold mt-2 text-on-surface"><span id="count-mastered" class="text-primary">0</span> Mastered</p>
+                    <p class="text-xs text-secondary mt-0.5"><span id="count-learning">0</span> Learning | <span id="count-unseen">0</span> Unseen</p>
+                </div>
+                <svg class="inline-block w-[1em] h-[1em] align-middle text-4xl text-gray-300" viewBox="0 -960 960 960" fill="currentColor"><path d="M282.67-278h66.66v-203.33h-66.66V-278Zm328 0h66.66v-413.33h-66.66V-278Zm-164 0h66.66v-118.67h-66.66V-278Zm0-203.33h66.66V-548h-66.66v66.67ZM186.67-120q-27 0-46.84-19.83Q120-159.67 120-186.67v-586.66q0-27 19.83-46.84Q159.67-840 186.67-840h586.66q27 0 46.84 19.83Q840-800.33 840-773.33v586.66q0 27-19.83 46.84Q800.33-120 773.33-120H186.67Zm0-66.67h586.66v-586.66H186.67v586.66Zm0-586.66v586.66-586.66Z"/></svg>
+            </section>
+
+            <div class="grid grid-cols-2 gap-4">
+                <a href="quiz.html" class="bg-primary text-white p-4 rounded-xl flex flex-col items-center justify-center text-center hover:bg-red-800 transition-colors shadow-sm">
+                    <svg class="inline-block w-[1em] h-[1em] align-middle text-3xl mb-1" viewBox="0 -960 960 960" fill="currentColor"><path d="m402.67-187.33 255-306H484.33L518-759.67l-230.33 333h149l-34 239.34ZM320-80l40-280H160l360-520h80l-40 320h240L400-80h-80Zm153-394Z"/></svg>
+                    <span class="font-bold text-sm">Launch Quiz</span>
+                </a>
+                <a href="library.html" class="bg-white border border-border-stable text-on-surface p-4 rounded-xl flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors shadow-sm">
+                    <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="green"><path d="M480-60q-76-68.67-168.67-105.33Q218.67-202 120-202v-432.67q96.33 0 189 40.84Q401.67-553 480-478.67 558.33-553 651-593.83q92.67-40.84 189-40.84V-202q-99 0-191.5 36.67Q556-128.67 480-60Zm0-86q68.33-49.67 142.33-79.33 74-29.67 151-38V-562q-69.66 11.67-143.5 53.83Q556-466 480-392.67q-80.67-76-152.17-117.16Q256.33-551 186.67-562v298.67q77 8.33 151 38 74 29.66 142.33 79.33ZM371.33-653.33Q326-698.67 326-764t45.33-110.67Q416.67-920 482-920t110.67 45.33Q638-829.33 638-764t-45.33 110.67Q547.33-608 482-608t-110.67-45.33Zm173.84-47.5Q571.33-727 571.33-764t-26.16-63.17Q519-853.33 482-853.33t-63.17 26.16Q392.67-801 392.67-764t26.16 63.17Q445-674.67 482-674.67t63.17-26.16ZM482-764Zm-2 371.33Z"/></svg> 
+                    <span class="font-bold text-sm">Open Cards</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <section class="bg-white border border-border-stable rounded-xl p-6 shadow-sm lg:col-span-2">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl text-tertiary" viewBox="0 -960 960 960" fill="currentColor"><path d="M186.67-120q-27.5 0-47.09-19.58Q120-159.17 120-186.67v-586.66q0-27.5 19.58-47.09Q159.17-840 186.67-840h192.66q7.67-35.33 35.84-57.67Q443.33-920 480-920t64.83 22.33Q573-875.33 580.67-840h192.66q27.5 0 47.09 19.58Q840-800.83 840-773.33v586.66q0 27.5-19.58 47.09Q800.83-120 773.33-120H186.67Zm0-66.67h586.66v-586.66H186.67v586.66ZM280-280h275.33v-66.67H280V-280Zm0-166.67h400v-66.66H280v66.66Zm0-166.66h400V-680H280v66.67ZM503.5-804.5q9.83-9.83 9.83-23.5t-9.83-23.5q-9.83-9.83-23.5-9.83t-23.5 9.83q-9.83 9.83-9.83 23.5t9.83 23.5q9.83 9.83 23.5 9.83t23.5-9.83ZM186.67-186.67v-586.66 586.66Z"/></svg> Lesson Performance Breakdown
+                </h3>
+                <div id="lesson-breakdown-list" class="space-y-4 max-h-[450px] overflow-y-auto pr-2"></div>
+            </section>
+
+            <section class="bg-white border border-border-stable rounded-xl p-6 shadow-sm flex flex-col">
+                <h3 class="text-lg font-bold mb-1 flex items-center gap-2 text-red-700">
+                    <svg class="inline-block w-[1em] h-[1em] align-middle text-3xl mb-1 text-tertiary" viewBox="0 -960 960 960" fill="red"><path d="M330-120 120-330v-300l210-210h300l210 210v300L630-120H330Zm30-193.33 120-120 120 120L646.67-360l-120-120 120-120L600-646.67l-120 120-120-120L313.33-600l120 120-120 120L360-313.33Zm-2 126.66h244L773.33-358v-244L602-773.33H358L186.67-602v244L358-186.67ZM480-480Z"/></svg> Troublesome Words
+                </h3>
+                <p class="text-xs text-secondary mb-4">Highest fail frequency words requiring flashcard focus.</p>
+                <div id="troublesome-container" class="space-y-3 flex-grow max-h-[450px] overflow-y-auto pr-2"></div>
+            </section>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 w-full z-50 flex justify-around items-center bg-white border-t border-border-stable py-2 md:hidden">
+        <a class="flex flex-col items-center text-primary" href="index.html">
+            <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M226.67-186.67h140v-246.66h226.66v246.66h140v-380L480-756.67l-253.33 190v380ZM160-120v-480l320-240 320 240v480H526.67v-246.67h-93.34V-120H160Zm320-352Z"/></svg>
+            <span class="text-[10px] font-bold">Home</span>
+        </a>
+        <a class="flex flex-col items-center text-secondary" href="quiz.html">
+            <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M577.83-358.83Q590-371 590-388t-12.17-29.17q-12.16-12.16-29.16-12.16t-29.17 12.16Q507.33-405 507.33-388t12.17 29.17q12.17 12.16 29.17 12.16t29.16-12.16ZM522-473.33h51.33q1.34-29 7.67-42.84Q587.33-530 612-554q28-27.33 38.33-46.43 10.34-19.1 10.34-44.9 0-45.59-31.5-74.46-31.5-28.88-82.5-28.88-39 0-69.17 21.34Q447.33-706 434-668.67l48 20q10.33-25 26.5-37.83 16.17-12.83 38.17-12.83 27.85 0 45.26 15.83 17.4 15.83 17.4 40.83 0 18-8.66 32.17Q592-596.33 570-578.67q-32.33 29-40.17 46.17-7.83 17.17-7.83 59.17Zm-242 260q-27 0-46.83-19.84Q213.33-253 213.33-280v-533.33q0-27 19.84-46.84Q253-880 280-880h533.33q27 0 46.84 19.83Q880-840.33 880-813.33V-280q0 27-19.83 46.83-19.84 19.84-46.84 19.84H280Zm0-66.67h533.33v-533.33H280V-280ZM146.67-80q-27 0-46.84-19.83Q80-119.67 80-146.67v-600h66.67v600h600V-80h-600ZM280-813.33V-280v-533.33Z"/></svg>
+            <span class="text-[10px] font-bold">Quiz</span>
+        </a>
+        <a class="flex flex-col items-center text-secondary" href="library.html">
+            <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="green"><path d="M480-60q-76-68.67-168.67-105.33Q218.67-202 120-202v-432.67q96.33 0 189 40.84Q401.67-553 480-478.67 558.33-553 651-593.83q92.67-40.84 189-40.84V-202q-99 0-191.5 36.67Q556-128.67 480-60Zm0-86q68.33-49.67 142.33-79.33 74-29.67 151-38V-562q-69.66 11.67-143.5 53.83Q556-466 480-392.67q-80.67-76-152.17-117.16Q256.33-551 186.67-562v298.67q77 8.33 151 38 74 29.66 142.33 79.33ZM371.33-653.33Q326-698.67 326-764t45.33-110.67Q416.67-920 482-920t110.67 45.33Q638-829.33 638-764t-45.33 110.67Q547.33-608 482-608t-110.67-45.33Zm173.84-47.5Q571.33-727 571.33-764t-26.16-63.17Q519-853.33 482-853.33t-63.17 26.16Q392.67-801 392.67-764t26.16 63.17Q445-674.67 482-674.67t63.17-26.16ZM482-764Zm-2 371.33Z"/></svg> 
+            <span class="text-[10px] font-bold">Library</span>
+        </a>
+    </nav>
+
+    <script src="data-vocab.js"></script>
+    <script src="data-kanji.js"></script>
+    <script src="app.js"></script>
+    <script src="updater.js"></script>
+    <script src="auth.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const stats = getOverallStats();
+            
+            document.getElementById('vocab-percent').textContent = stats.vocab.percentage + '%';
+            document.getElementById('vocab-progress-bar').style.width = stats.vocab.percentage + '%';
+            
+            document.getElementById('kanji-percent').textContent = stats.kanji.percentage + '%';
+            document.getElementById('kanji-progress-bar').style.width = stats.kanji.percentage + '%';
+            
+            document.getElementById('count-mastered').textContent = stats.overall.mastered;
+            document.getElementById('count-learning').textContent = stats.overall.learning;
+            document.getElementById('count-unseen').textContent = stats.overall.unseen;
+
+            const lessonList = document.getElementById('lesson-breakdown-list');
+            const lessons = getLessonStats();
+            lessonList.innerHTML = '';
+            
+            lessons.forEach(l => {
+                const pct = Math.round((l.mastered / l.total) * 100) || 0;
+                const typeLabel = l.type === 'kanji' ? 'KANJI' : 'VOCAB';
+                const typeColor = l.type === 'kanji' ? 'text-tertiary bg-tertiary/10' : 'text-primary bg-primary/10';
+                const barColor = l.type === 'kanji' ? 'bg-tertiary' : 'bg-primary';
+                const labelStr = isNaN(parseInt(l.id)) ? l.id : `Lesson ${l.id}`;
+                const cleanName = l.name ? (l.name.includes(':') ? l.name.split(':')[1] : l.name) : '';
+                
+                const div = document.createElement('div');
+                div.className = "border-b border-gray-100 pb-3 last:border-0";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-1 text-sm">
+                        <span class="font-bold text-on-surface flex items-center gap-2">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-sm ${typeColor}">${typeLabel}</span>
+                            ${labelStr} <span class="font-normal text-secondary">${cleanName ? `— ${cleanName}` : ''}</span>
+                        </span>
+                        <span class="font-mono text-xs font-bold text-secondary">${l.mastered}/${l.total} (${pct}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                        <div class="${barColor} h-full transition-all duration-500" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                lessonList.appendChild(div);
+            });
+
+            const troubleContainer = document.getElementById('troublesome-container');
+            const badWords = getTroublesomeWords();
+            troubleContainer.innerHTML = '';
+            if(badWords.length === 0) {
+                troubleContainer.innerHTML = `<div class="text-sm text-secondary text-center py-8">No problematic words logged yet!</div>`;
+            } else {
+                badWords.forEach(w => {
+                    const div = document.createElement('div');
+                    div.className = "p-3 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center cursor-pointer hover:bg-red-100 transition-colors";
+                    div.onclick = () => speakJapanese(w.japanese);
+                    
+                    const targetRomaji = w.romaji || w.correctAnswerRomaji || '';
+                    const targetMeaning = w.meaningEnglish || w.translationEnglish || w.meaning || '';
+                    
+                    div.innerHTML = `
+                        <div>
+                            <p class="font-bold text-red-900 text-lg font-jp">${w.kanji || w.japanese}</p>
+                            <p class="text-xs font-mono text-secondary">${targetRomaji} • ${targetMeaning}</p>
+                        </div>
+                        <div class="text-right text-xs bg-white px-2 py-1 rounded border border-red-200 font-bold text-red-700">
+                            Fails: ${w.stats.incorrect}
+                        </div>
+                    `;
+                    troubleContainer.appendChild(div);
+                });
+            }
+
+            async function initAdSystem() {
+                if (!navigator.onLine) return;
+
+                const today = new Date().toDateString();
+                let adData = JSON.parse(localStorage.getItem('n5_ad_views') || '{"date":"","count":0}');
+                
+                if (adData.date !== today) {
+                    adData = { date: today, count: 0 };
+                }
+
+                if (adData.count >= 2) return;
+
+                try {
+                    const response = await fetch('https://kawsar-a-tonmoy.github.io/n5/ads.html');
+                    if (!response.ok) return;
+                    
+                    const htmlText = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    
+                    const now = Date.now();
+                    
+                    const allAds = Array.from(doc.querySelectorAll('.ad-card')).filter(ad => {
+                        const expiry = ad.getAttribute('data-expiry');
+                        if (!expiry) return true;
+                        return new Date(expiry).getTime() > now;
+                    }).slice(0, 3);
+
+                    if (allAds.length > 0) {
+                        showAdPopup(allAds);
+                        adData.count++;
+                        localStorage.setItem('n5_ad_views', JSON.stringify(adData));
+                    }
+                } catch (error) {
+                    console.log('Ad fetch failed or blocked:', error);
+                }
+            }
+
+            function showAdPopup(adElements) {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300';
+                overlay.style.zIndex = '9999';
+
+                const modal = document.createElement('div');
+                modal.className = 'bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-sm relative flex flex-col aspect-[3/4] max-h-[80vh]';
+
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'absolute top-3 right-3 bg-black bg-opacity-50 hover:bg-opacity-80 text-white rounded-full w-8 h-8 flex items-center justify-center z-50 hidden transition-all shadow-md';
+                closeBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                closeBtn.onclick = () => {
+                    clearInterval(window.adTimerInterval);
+                    overlay.remove();
+                };
+
+                setTimeout(() => closeBtn.classList.remove('hidden'), 1000);
+
+                const carousel = document.createElement('div');
+                carousel.className = 'relative w-full h-full flex-grow overflow-hidden bg-gray-50 touch-pan-y';
+
+                adElements.forEach((adNode, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'absolute inset-0 transition-opacity duration-500 w-full h-full ad-slide select-none';
+                    wrapper.style.opacity = index === 0 ? '1' : '0';
+                    wrapper.style.zIndex = index === 0 ? '10' : '0';
+                    wrapper.style.pointerEvents = index === 0 ? 'auto' : 'none';
+                    
+                    const img = adNode.querySelector('img');
+                    if(img) img.draggable = false;
+
+                    wrapper.appendChild(adNode.cloneNode(true));
+                    carousel.appendChild(wrapper);
+                });
+
+                modal.appendChild(closeBtn);
+                modal.appendChild(carousel);
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+
+                function updateTimers() {
+                    const now = Date.now();
+                    document.querySelectorAll('.ad-countdown').forEach(el => {
+                        const parentCard = el.closest('.ad-card');
+                        if (!parentCard) return;
+                        
+                        const expiry = parentCard.getAttribute('data-expiry');
+                        if (!expiry) {
+                            el.style.display = 'none';
+                            return;
+                        }
+                        
+                        const distance = new Date(expiry).getTime() - now;
+                        if (distance < 0) {
+                            el.innerText = "Expired";
+                            return;
+                        }
+                        
+                        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                        
+                        let timeStr = days > 0 ? `${days}d ` : '';
+                        timeStr += `${hours}h ${minutes}m ${seconds}s`;
+                        el.innerText = `Ends in: ${timeStr}`;
+                        el.style.display = 'block';
+                    });
+                }
+                updateTimers();
+                window.adTimerInterval = setInterval(updateTimers, 1000);
+
+                if (adElements.length > 1) {
+                    const dotsContainer = document.createElement('div');
+                    dotsContainer.className = 'absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-50 pointer-events-auto';
+                    
+                    adElements.forEach((_, i) => {
+                        const dot = document.createElement('div');
+                        dot.className = 'w-2 h-2 rounded-full transition-colors duration-300 ad-dot cursor-pointer shadow-sm';
+                        dot.style.backgroundColor = i === 0 ? '#b61722' : '#d1d5db'; 
+                        
+                        dot.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            goToSlide(i);
+                            resetAutoSlide();
+                        });
+                        
+                        dotsContainer.appendChild(dot);
+                    });
+                    modal.appendChild(dotsContainer);
+
+                    let currentIndex = 0;
+                    let autoSlideTimer;
+
+                    function goToSlide(index) {
+                        const slides = carousel.querySelectorAll('.ad-slide');
+                        const dots = dotsContainer.querySelectorAll('.ad-dot');
+                        
+                        slides[currentIndex].style.opacity = '0';
+                        slides[currentIndex].style.zIndex = '0';
+                        slides[currentIndex].style.pointerEvents = 'none';
+                        dots[currentIndex].style.backgroundColor = '#d1d5db';
+                        
+                        currentIndex = (index + slides.length) % slides.length;
+                        
+                        slides[currentIndex].style.opacity = '1';
+                        slides[currentIndex].style.zIndex = '10';
+                        slides[currentIndex].style.pointerEvents = 'auto';
+                        dots[currentIndex].style.backgroundColor = '#b61722';
+                    }
+
+                    function nextSlide() { goToSlide(currentIndex + 1); }
+                    function prevSlide() { goToSlide(currentIndex - 1); }
+                    
+                    function resetAutoSlide() {
+                        clearInterval(autoSlideTimer);
+                        autoSlideTimer = setInterval(nextSlide, 4500);
+                    }
+                    resetAutoSlide();
+
+                    let touchStartX = 0;
+                    let touchEndX = 0;
+
+                    carousel.addEventListener('touchstart', e => {
+                        touchStartX = e.changedTouches[0].screenX;
+                    }, { passive: true });
+
+                    carousel.addEventListener('touchend', e => {
+                        touchEndX = e.changedTouches[0].screenX;
+                        handleSwipe();
+                    }, { passive: true });
+
+                    function handleSwipe() {
+                        const swipeDistance = touchEndX - touchStartX;
+                        if (swipeDistance < -40) {
+                            nextSlide();
+                            resetAutoSlide();
+                        } else if (swipeDistance > 40) {
+                            prevSlide();
+                            resetAutoSlide();
+                        }
+                    }
+                }
+            }
+
+            initAdSystem();
+        });
+    </script>
+</body>
+</html>

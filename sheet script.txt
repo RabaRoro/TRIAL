@@ -1,0 +1,292 @@
+// name=Script for sheets.txt
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheets = ensureAndFormatSheets(ss);
+
+    if (action === "request_code") return handleRequestCode(data, sheets.regSheet);
+    if (action === "verify_code") return handleVerifyCode(data, sheets.regSheet);
+    if (action === "forgot_code") return handleForgotCode(data, sheets.regSheet);
+    if (action === "sync_progress") return handleSyncProgress(data, ss, sheets.progressSheet);
+
+    return responseJSON({ success: false, message: "Invalid action request." });
+  } catch (err) {
+    return responseJSON({ success: false, error: err.toString() });
+  }
+}
+
+// Maps columns dynamically based on header titles to prevent structure errors
+function getColIndices(sheet) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return { name: 0, email: 1, batch: 2, verified: 3, code: 4 };
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().toLowerCase().trim());
+  
+  let indices = {
+    name: headers.indexOf("name"), email: headers.indexOf("email"), 
+    batch: headers.indexOf("batch"), verified: headers.indexOf("verified"), 
+    code: headers.indexOf("code")
+  };
+  
+  if (indices.email === -1) indices.email = 1;
+  if (indices.code === -1) indices.code = 4;
+  if (indices.verified === -1) indices.verified = 3;
+  if (indices.name === -1) indices.name = 0;
+  if (indices.batch === -1) indices.batch = 2;
+  
+  return indices;
+}
+
+function handleRequestCode(data, regSheet) {
+  try {
+    const email = (data.email || "").toString().trim().toLowerCase();
+    const cols = getColIndices(regSheet);
+    const rows = regSheet.getDataRange().getValues();
+
+    for (let i = 1; i < rows.length; i++) {
+      const existingEmail = (rows[i][cols.email] || "").toString().trim().toLowerCase();
+      if (existingEmail === email) {
+        const isVerified = (rows[i][cols.verified] === true || rows[i][cols.verified] === "true" || rows[i][cols.verified] === "TRUE");
+        
+        if (isVerified) {
+          return responseJSON({ success: false, exists: true, message: "Account already verified. Switch to Verify to log in." });
+        } else {
+          // Overwrite existing unverified row with a fresh code
+          const newCode = generateCode();
+          regSheet.getRange(i + 1, cols.code + 1).setValue(newCode);
+          regSheet.getRange(i + 1, cols.code + 1).setNumberFormat("@");
+          SpreadsheetApp.flush(); // Force immediate database write
+          sendHtmlEmail(email, data.name || rows[i][cols.name], newCode, "Registration");
+          return responseJSON({ success: true, message: "New code generated and sent!" });
+        }
+      }
+    }
+
+    // Add brand new user
+    const code = generateCode();
+    let newRow = [];
+    newRow[cols.name] = data.name;
+    newRow[cols.email] = email;
+    newRow[cols.batch] = data.batch;
+    newRow[cols.verified] = false;
+    newRow[cols.code] = code;
+
+    for(let k = 0; k <= Math.max(cols.code, cols.email, cols.verified); k++) {
+      if (newRow[k] === undefined) newRow[k] = "";
+    }
+
+    regSheet.appendRow(newRow);
+    regSheet.getRange(regSheet.getLastRow(), cols.code + 1).setNumberFormat("@");
+    SpreadsheetApp.flush(); // Crucial: Ensures the row exists before verify step fires
+
+    sendHtmlEmail(email, data.name, code, "Registration");
+    return responseJSON({ success: true, message: "Verification code sent to email." });
+  } catch (e) {
+    return responseJSON({ success: false, message: "Registration error: " + e.toString() });
+  }
+}
+
+function handleVerifyCode(data, regSheet) {
+  try {
+    const email = (data.email || "").toString().trim().toLowerCase();
+    const cleanInputCode = (data.code || "").toString().replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    
+    SpreadsheetApp.flush(); // Pull freshest data
+    const cols = getColIndices(regSheet);
+    const rows = regSheet.getDataRange().getValues();
+
+    let emailFound = false;
+
+    for (let i = 1; i < rows.length; i++) {
+      const userEmail = (rows[i][cols.email] || "").toString().trim().toLowerCase();
+      const storedCode = (rows[i][cols.code] || "").toString().replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+      if (userEmail === email) {
+        emailFound = true;
+        if (storedCode && storedCode === cleanInputCode) {
+          regSheet.getRange(i + 1, cols.verified + 1).setValue(true);
+          SpreadsheetApp.flush();
+          return responseJSON({ 
+            success: true, 
+            user: { name: rows[i][cols.name], email: rows[i][cols.email], batch: rows[i][cols.batch] } 
+          });
+        }
+      }
+    }
+
+    if (!emailFound) {
+      return responseJSON({ success: false, message: "Email not found in database. Please register first." });
+    }
+
+    return responseJSON({ success: false, message: "Invalid verification code. Please check your email and try again." });
+  } catch (e) {
+    return responseJSON({ success: false, message: "Verification process error: " + e.toString() });
+  }
+}
+
+function handleForgotCode(data, regSheet) {
+  try {
+    const email = (data.email || "").toString().trim().toLowerCase();
+    const cols = getColIndices(regSheet);
+    const rows = regSheet.getDataRange().getValues();
+
+    for (let i = 1; i < rows.length; i++) {
+      const userEmail = (rows[i][cols.email] || "").toString().trim().toLowerCase();
+      if (userEmail === email) {
+        const name = rows[i][cols.name] || "Student";
+        const storedCode = (rows[i][cols.code] || "").toString().replace(/'/g, "").trim();
+        
+        if (!storedCode) {
+          const newCode = generateCode();
+          regSheet.getRange(i + 1, cols.code + 1).setValue(newCode);
+          SpreadsheetApp.flush();
+          sendHtmlEmail(email, name, newCode, "Recovery");
+          return responseJSON({ success: true, message: "Code regenerated and sent." });
+        }
+
+        sendHtmlEmail(email, name, storedCode, "Recovery");
+        return responseJSON({ success: true, message: "Your code has been resent to your email." });
+      }
+    }
+
+    return responseJSON({ success: false, message: "Email not found in database. Please register first." });
+  } catch (e) {
+    return responseJSON({ success: false, message: "Resend error: " + e.toString() });
+  }
+}
+
+function handleSyncProgress(data, ss, progressSheet) {
+  try {
+    const email = data.user.email;
+    const userName = data.user.name;
+
+    const detailSheetName = `${userName} (${email})`.substring(0, 30);
+    let detailSheet = ss.getSheetByName(detailSheetName);
+    
+    if (!detailSheet) {
+      detailSheet = ss.insertSheet(detailSheetName);
+    } else {
+      detailSheet.clear();
+    }
+
+    detailSheet.appendRow(["Category", "Lesson Title", "Score (Mastered/Total)", "Percentage", "Status"]);
+    formatHeader(detailSheet);
+
+    let totalMastered = 0;
+    let totalQuestions = 0;
+
+    if (data.breakdown && Array.isArray(data.breakdown) && data.breakdown.length > 0) {
+      data.breakdown.forEach(item => {
+        detailSheet.appendRow([
+          item.category || "GENERAL", item.lessonTitle || "Lesson",
+          `${item.score}/${item.total}`, `${item.percentage}%`,
+          item.percentage === 100 ? "Completed" : item.percentage > 0 ? "In Progress" : "Unstarted"
+        ]);
+
+        totalMastered += parseInt(item.score || 0, 10);
+        totalQuestions += parseInt(item.total || 0, 10);
+      });
+    }
+    detailSheet.autoResizeColumns(1, 5);
+
+    const lastRow = detailSheet.getLastRow();
+    if (lastRow > 1) {
+      const statusRange = detailSheet.getRange(2, 5, lastRow - 1, 1);
+      const values = statusRange.getValues();
+      for (let r = 0; r < values.length; r++) {
+        const cell = detailSheet.getRange(r + 2, 5);
+        if (values[r][0] === "Completed") cell.setBackground("#d1fae5").setFontColor("#065f46");
+        else if (values[r][0] === "In Progress") cell.setBackground("#fef3c7").setFontColor("#92400e");
+        else cell.setBackground("#f3f4f6").setFontColor("#6b7280");
+      }
+    }
+
+    const linkFormula = `=HYPERLINK("#gid=${detailSheet.getSheetId()}", "📊 View In-Depth Breakdown")`;
+    const overallPercent = totalQuestions > 0 ? Math.round((totalMastered / totalQuestions) * 100) : 0;
+
+    progressSheet.appendRow([
+      new Date(), userName, email, data.user.batch, totalMastered,
+      totalQuestions - totalMastered, `${overallPercent}%`, linkFormula
+    ]);
+    progressSheet.autoResizeColumns(1, 8);
+    SpreadsheetApp.flush();
+
+    return responseJSON({ success: true, message: "In-depth performance synced successfully." });
+  } catch (e) {
+    return responseJSON({ success: false, message: "Sync error: " + e.toString() });
+  }
+}
+
+function ensureAndFormatSheets(ss) {
+  let oldUsers = ss.getSheetByName("Users");
+  if (oldUsers) oldUsers.setName("REG-Users");
+  
+  let oldProgress = ss.getSheetByName("ProgressLogs");
+  if (oldProgress) oldProgress.setName("Users-Progress");
+
+  let progressSheet = ss.getSheetByName("Users-Progress");
+  if (!progressSheet) {
+    progressSheet = ss.insertSheet("Users-Progress", 0);
+    progressSheet.appendRow(["Timestamp", "Name", "Email", "Batch", "Mastered Items", "Remaining Items", "Overall %", "Detailed Performance Link"]);
+    formatHeader(progressSheet);
+  }
+  ss.setActiveSheet(progressSheet);
+  ss.moveActiveSheet(1);
+
+  let regSheet = ss.getSheetByName("REG-Users");
+  if (!regSheet) {
+    regSheet = ss.insertSheet("REG-Users", 1);
+    regSheet.appendRow(["Name", "Email", "Batch", "Verified", "Code"]);
+    formatHeader(regSheet);
+  }
+  
+  regSheet.getRange("E:E").setNumberFormat("@");
+  ss.setActiveSheet(regSheet);
+  ss.moveActiveSheet(2);
+
+  return { regSheet, progressSheet };
+}
+
+function formatHeader(sheet) {
+  const range = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+  range.setFontWeight("bold").setBackground("#111827").setFontColor("#ffffff");
+  sheet.setFrozenRows(1);
+}
+
+function sendHtmlEmail(email, name, code, type) {
+  const subject = type === "Recovery" ? "Your Recovered Verification Code" : "Your Verification Code";
+  const title = type === "Recovery" ? "Code Recovery" : "Student Account Verification";
+  
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+      <div style="background-color: #991b1b; padding: 24px; text-align: center;">
+        <h2 style="color: #ffffff; margin: 0; font-size: 20px;">${title}</h2>
+      </div>
+      <div style="padding: 32px 24px;">
+        <p style="margin-top: 0; color: #374151;">Hello <strong>${name || 'Student'}</strong>,</p>
+        <div style="text-align: center; margin: 28px 0;">
+          <span style="font-family: monospace; font-size: 30px; font-weight: 700; letter-spacing: 6px; color: #111827; background-color: #f3f4f6; padding: 16px 28px; border-radius: 8px; border: 2px dashed #d1d5db; display: inline-block;">
+            ${code}
+          </span>
+        </div>
+      </div>
+    </div>
+  `;
+  MailApp.sendEmail({ to: email, subject: subject, htmlBody: htmlBody });
+}
+
+function generateCode() {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let part1 = "", part2 = "";
+  for (let i = 0; i < 3; i++) {
+    part1 += chars.charAt(Math.floor(Math.random() * chars.length));
+    part2 += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${part1}-${part2}`;
+}
+
+function responseJSON(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}

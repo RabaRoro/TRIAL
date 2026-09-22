@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Vocabulary Library</title>
+    <link rel="icon" type="image/x-icon" href="ico.png"> 
+    <script src="tailwind.js"></script>
+   
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "border-stable": "#E5E7EB", "primary": "#b61722", "secondary": "#555f6f",
+                        "tertiary": "#006765", "background": "#f9f9ff", "on-surface": "#151c27"
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .academic-flashcard {
+            background: #ffffff;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .academic-flashcard:hover {
+            border-color: #b61722;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(182, 23, 34, 0.08);
+            cursor: pointer;
+        }
+        ruby { ruby-position: over; }
+        rt { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-sans pb-24 md:pb-8">
+
+    <header class="bg-white border-b border-border-stable sticky top-0 z-50">
+        <div class="flex justify-between items-center w-full px-4 md:px-8 max-w-[1024px] mx-auto h-16">
+            <div class="text-xl font-bold text-primary flex items-center gap-2"><div class="w-10 h-10 sm:w-12 sm:h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white text-3xl font-bold">日</div>Nihongo Nichi</div>
+            <nav class="hidden md:flex items-center space-x-6 h-full">
+                <a class="text-secondary hover:text-primary h-full flex items-center px-2" href="index.html">Dashboard</a>
+                <a class="text-secondary hover:text-primary h-full flex items-center px-2" href="quiz.html">Quiz</a>
+                <a class="text-primary font-bold border-b-2 border-primary h-full flex items-center px-2" href="library.html">Library</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-[1024px] mx-auto px-4 md:px-8 py-8 space-y-6">
+        
+        <section class="bg-white border border-border-stable p-4 rounded-xl shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-secondary mb-1.5 uppercase tracking-wider">Search Database Records</label>
+                <div class="relative">
+                    <svg class="inline-block w-[1em] h-[1em] align-middle absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M792-120.67 532.67-380q-30 25.33-69.67 39.67Q423.33-326 378.67-326q-108.34 0-183.5-75.17Q120-476.33 120-583.33t75.17-182.17q75.16-75.17 182.83-75.17 107 0 181.83 75.17 74.84 75.17 74.84 182.17 0 43.33-14 83-14 39.66-40.67 73l260 258.66-48 48Zm-414-272q79 0 134.5-55.83T568-583.33q0-79-55.5-134.84Q457-774 378-774q-79.67 0-135.5 55.83-55.83 55.84-55.83 134.84T242.5-448.5q55.83 55.83 135.5 55.83Z"/></svg>
+                    <input id="filter-search-string" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-border-stable rounded-lg focus:border-primary focus:ring-0 outline-none text-sm" placeholder="Search Romaji, English, Bangla..." type="text">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-secondary mb-1.5 uppercase tracking-wider">Item Type</label>
+                <select id="filter-item-type" class="w-full bg-gray-50 border border-border-stable rounded-lg py-2.5 px-3 text-sm focus:border-primary focus:ring-0 outline-none">
+                    <option value="vocab">Vocabulary</option>
+                    <option value="kanji">Kanji</option>
+                    <option value="verb">Verb Forms (Te/Ta/Nai/Jisho)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-secondary mb-1.5 uppercase tracking-wider">Chapter Isolation</label>
+                <select id="filter-chapter-id" class="w-full bg-gray-50 border border-border-stable rounded-lg py-2.5 px-3 text-sm focus:border-primary focus:ring-0 outline-none">
+                    <option value="all">Display All Lessons</option>
+                </select>
+            </div>
+        </section>
+
+        <div class="flex flex-wrap gap-4 text-xs font-bold text-secondary tracking-wide uppercase px-1">
+            <div>Cards Found: <span id="ui-filtered-total" class="text-primary">0</span></div>
+            <div>•</div>
+            <div>Mastered: <span id="ui-mastered-total" class="text-teal-700">0</span></div>
+        </div>
+
+        <div id="deck-grid-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </main>
+
+    <nav class="fixed bottom-0 w-full z-50 flex justify-around items-center bg-white border-t border-border-stable py-2 md:hidden">
+        <a class="flex flex-col items-center text-secondary" href="index.html">
+            <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M226.67-186.67h140v-246.66h226.66v246.66h140v-380L480-756.67l-253.33 190v380ZM160-120v-480l320-240 320 240v480H526.67v-246.67h-93.34V-120H160Zm320-352Z"/></svg>
+            <span class="text-[10px] font-bold">Home</span>
+        </a>
+        <a class="flex flex-col items-center text-secondary" href="quiz.html">
+            <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="currentColor"><path d="M577.83-358.83Q590-371 590-388t-12.17-29.17q-12.16-12.16-29.16-12.16t-29.17 12.16Q507.33-405 507.33-388t12.17 29.17q12.17 12.16 29.17 12.16t29.16-12.16ZM522-473.33h51.33q1.34-29 7.67-42.84Q587.33-530 612-554q28-27.33 38.33-46.43 10.34-19.1 10.34-44.9 0-45.59-31.5-74.46-31.5-28.88-82.5-28.88-39 0-69.17 21.34Q447.33-706 434-668.67l48 20q10.33-25 26.5-37.83 16.17-12.83 38.17-12.83 27.85 0 45.26 15.83 17.4 15.83 17.4 40.83 0 18-8.66 32.17Q592-596.33 570-578.67q-32.33 29-40.17 46.17-7.83 17.17-7.83 59.17Zm-242 260q-27 0-46.83-19.84Q213.33-253 213.33-280v-533.33q0-27 19.84-46.84Q253-880 280-880h533.33q27 0 46.84 19.83Q880-840.33 880-813.33V-280q0 27-19.83 46.83-19.84 19.84-46.84 19.84H280Zm0-66.67h533.33v-533.33H280V-280ZM146.67-80q-27 0-46.84-19.83Q80-119.67 80-146.67v-600h66.67v600h600V-80h-600ZM280-813.33V-280v-533.33Z"/></svg>
+            <span class="text-[10px] font-bold">Quiz</span>
+        </a>
+        <a class="flex flex-col items-center text-primary" href="library.html">
+            <svg class="inline-block w-[1em] h-[1em] align-middle text-2xl" viewBox="0 -960 960 960" fill="green"><path d="M480-60q-76-68.67-168.67-105.33Q218.67-202 120-202v-432.67q96.33 0 189 40.84Q401.67-553 480-478.67 558.33-553 651-593.83q92.67-40.84 189-40.84V-202q-99 0-191.5 36.67Q556-128.67 480-60Zm0-86q68.33-49.67 142.33-79.33 74-29.67 151-38V-562q-69.66 11.67-143.5 53.83Q556-466 480-392.67q-80.67-76-152.17-117.16Q256.33-551 186.67-562v298.67q77 8.33 151 38 74 29.66 142.33 79.33ZM371.33-653.33Q326-698.67 326-764t45.33-110.67Q416.67-920 482-920t110.67 45.33Q638-829.33 638-764t-45.33 110.67Q547.33-608 482-608t-110.67-45.33Zm173.84-47.5Q571.33-727 571.33-764t-26.16-63.17Q519-853.33 482-853.33t-63.17 26.16Q392.67-801 392.67-764t26.16 63.17Q445-674.67 482-674.67t63.17-26.16ZM482-764Zm-2 371.33Z"/></svg> 
+            <span class="text-[10px] font-bold">Library</span>
+        </a>
+    </nav>
+
+    <script src="data-vocab.js"></script>
+    <script src="data-kanji.js"></script>
+    <script src="dict-plt.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let isFirstLoad = true; 
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFilterDropdownOptions();
+            executeGridSyncRender();
+
+            document.getElementById('filter-search-string').addEventListener('input', executeGridSyncRender);
+            document.getElementById('filter-chapter-id').addEventListener('change', executeGridSyncRender);
+            document.getElementById('filter-item-type').addEventListener('change', () => {
+                initializeFilterDropdownOptions();
+                executeGridSyncRender();
+            });
+        });
+
+        function getActiveDataset() {
+            const type = document.getElementById('filter-item-type').value;
+            if (type === 'kanji' && typeof kanjiData !== 'undefined') {
+                return kanjiData;
+            }
+            if (type === 'verb' && typeof dictData !== 'undefined') {
+                return dictData;
+            }
+            return typeof vocabData !== 'undefined' ? vocabData : [];
+        }
+
+        function initializeFilterDropdownOptions() {
+            const dropdown = document.getElementById('filter-chapter-id');
+            const savedValue = dropdown.value;
+            dropdown.innerHTML = '<option value="all">Display All Lessons</option>';
+            
+            const targetData = getActiveDataset();
+            
+            const sortedLessons = [...new Set(targetData.map(v => v.lesson))].sort((a,b) => {
+                const numA = parseInt(a);
+                const numB = parseInt(b);
+                if (isNaN(numA) && isNaN(numB)) return String(a).localeCompare(String(b));
+                if (isNaN(numA)) return 1;
+                if (isNaN(numB)) return -1;
+                return numA - numB;
+            });
+            
+            sortedLessons.forEach(num => {
+                const opt = document.createElement('option');
+                opt.value = num;
+                opt.textContent = isNaN(parseInt(num)) ? `Lesson ${num}` : `Lesson ${num}`;
+                dropdown.appendChild(opt);
+            });
+
+            if (isFirstLoad && sortedLessons.includes(1)) {
+                dropdown.value = "1";
+                isFirstLoad = false;
+            } else if ([...dropdown.options].some(o => o.value === savedValue)) {
+                dropdown.value = savedValue;
+            }
+        }
+
+        function createStatusBadgeMarkup(status) {
+            if (status === 'Mastered') {
+                return `<span class="flex items-center gap-0.5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200 rounded">Mastered</span>`;
+            } else if (status === 'Troublesome') {
+                return `<span class="flex items-center gap-0.5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 rounded">Troublesome</span>`;
+            } else if (status === 'Learning') {
+                return `<span class="flex items-center gap-0.5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 rounded">Learning</span>`;
+            } else {
+                return `<span class="flex items-center gap-0.5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-gray-50 text-gray-500 border border-gray-200 rounded">Unseen</span>`;
+            }
+        }
+
+        function executeGridSyncRender() {
+            const grid = document.getElementById('deck-grid-container');
+            const searchVal = document.getElementById('filter-search-string').value.toLowerCase();
+            const chosenChapter = document.getElementById('filter-chapter-id').value;
+            grid.innerHTML = '';
+
+            const targetData = getActiveDataset();
+            const matches = targetData.filter(v => {
+                const targetRomajiStr = (v.romaji || v.correctAnswerRomaji || '').toLowerCase();
+                const targetEnglishStr = (v.meaningEnglish || v.translationEnglish || '').toLowerCase();
+                const targetBanglaStr = (v.meaningBangla || v.translationBangla || '');
+
+                const searchStringMatches = v.japanese.includes(searchVal) || 
+                                            (v.kanji && v.kanji.includes(searchVal)) || 
+                                            targetRomajiStr.includes(searchVal) || 
+                                            targetEnglishStr.includes(searchVal) ||
+                                            (targetBanglaStr && targetBanglaStr.includes(searchVal));
+                
+                const lessonFilterMatches = (searchVal !== '') || chosenChapter === 'all' || String(v.lesson) === chosenChapter;
+                
+                return searchStringMatches && lessonFilterMatches;
+            });
+
+            document.getElementById('ui-filtered-total').textContent = matches.length;
+            
+            let totalMasteredCount = 0;
+            matches.forEach(item => {
+                const currentStatus = getWordStatus(item.japanese);
+                if (currentStatus === 'Mastered') totalMasteredCount++;
+
+                const cardElement = document.createElement('div');
+                cardElement.className = "academic-flashcard group";
+                cardElement.onclick = () => speakJapanese(item.japanese);
+                
+                let jpContentBlock = "";
+                if (item.kanji && item.kanji !== "") {
+                    jpContentBlock = `<ruby class="font-jp text-3xl font-bold tracking-wide text-primary">${item.kanji}<rt class="text-xs font-normal text-secondary tracking-normal pb-0.5 select-none">${item.japanese}</rt></ruby>`;
+                } else if (item.correctAnswerJapanese) {
+                    jpContentBlock = `<div class="font-jp text-3xl font-bold tracking-wide text-primary pt-1">${item.japanese} → <span class="text-teal-700">${item.correctAnswerJapanese}</span></div>`;
+                } else {
+                    jpContentBlock = `<div class="font-jp text-3xl font-bold tracking-wide text-primary pt-3">${item.japanese}</div>`;
+                }
+
+                const displayRomaji = item.romaji || item.correctAnswerRomaji || '';
+                const displayEnglish = item.meaningEnglish || item.translationEnglish || '';
+                const displayBangla = item.meaningBangla || item.translationBangla || '';
+                const displayMeta = item.verbGroup ? `<span class="text-[10px] text-tertiary font-bold uppercase tracking-wider block mb-1">${item.verbGroup}</span>` : '';
+
+                // Build HTML block for examples if available
+                let examplesMarkup = '';
+                if (item.examples && item.examples.length > 0) {
+                    examplesMarkup = `<div class="mt-3 pt-3 border-t border-gray-100 space-y-1.5">`;
+                    item.examples.forEach(ex => {
+                        examplesMarkup += `
+                            <div class="bg-gray-50 p-2 rounded text-xs">
+                                <div class="font-bold text-slate-800 font-jp">${ex.japanese} <span class="font-mono text-[10px] text-secondary font-normal ml-1">(${ex.romaji})</span></div>
+                                <div class="text-secondary text-[11px]">${ex.meaningEnglish} / ${ex.meaningBangla}</div>
+                            </div>
+                        `;
+                    });
+                    examplesMarkup += `</div>`;
+                }
+
+                cardElement.innerHTML = `
+                    <div class="absolute top-4 right-4">${createStatusBadgeMarkup(currentStatus)}</div>
+                    <div class="flex flex-col mb-4">
+                        <div class="min-h-[56px] flex items-end mb-2">
+                            ${jpContentBlock}
+                        </div>
+                        ${displayMeta}
+                        <div class="font-mono text-xs text-secondary font-bold tracking-tight mb-1">${displayRomaji}</div>
+                        <div class="text-base font-bold text-slate-800 leading-snug">${displayEnglish}</div>
+                        <div class="text-sm text-secondary mt-0.5 font-medium">${displayBangla}</div>
+                        ${examplesMarkup}
+                    </div>
+                    <div class="mt-auto pt-3 border-t border-gray-100 flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <span>Ch. ${item.lesson}</span>
+                        <span class="text-primary flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Listen <svg class="inline-block w-[1em] h-[1em] align-middle text-[14px]" viewBox="0 -960 960 960" fill="currentColor"><path d="M382-306.67 653.33-480 382-653.33v346.66ZM480-80q-82.33 0-155.33-31.5-73-31.5-127.34-85.83Q143-251.67 111.5-324.67T80-480q0-83 31.5-156t85.83-127q54.34-54 127.34-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82.33-31.5 155.33-31.5 73-85.5 127.34Q709-143 636-111.5T480-80Zm0-66.67q139.33 0 236.33-97.33t97-236q0-139.33-97-236.33t-236.33-97q-138.67 0-236 97-97.33 97-97.33 236.33 0 138.67 97.33 236 97.33 97.33 236 97.33ZM480-480Z"/></svg>
+                        </span>
+                    </div>
+                `;
+                grid.appendChild(cardElement);
+            });
+
+            document.getElementById('ui-mastered-total').textContent = totalMasteredCount;
+        }
+    </script>
+</body>
+</html>
