@@ -108,7 +108,7 @@
 
             try {
                 // Fetch data dynamically from Google Sheets based on the email
-                const res = await fetch(`${SCRIPT_URL}?action=get_progress&email=${encodeURIComponent(email)}`);
+                const res = await fetch(`${SCRIPT_URL}?action=get_progress&email=${encodeURIComponent(email)}`, {     method: "GET",     redirect: "follow" });
                 const json = await res.json();
 
                 if (json.success) {
