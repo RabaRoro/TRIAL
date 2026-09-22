@@ -1,5 +1,5 @@
 // auth.js
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNoY7oqv_K4aSkZO_zT_0GISJXvLjEsUIxQ8GuACn6SU9gBUnA2RTTDeIu-xn_K8-3/exec"; // Insert your Web App URL here
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_7dD4vKmBBDYbCMy7ZEtzq5Kw96HKHiYmEubKsTXxuSf4Qk9zMT8BL86WorrN0gWY/exec"; // Insert your Web App URL here
 const AUTH_KEY = "agency_student_auth";
 const LAST_SYNC_KEY = "agency_last_sync_time";
 

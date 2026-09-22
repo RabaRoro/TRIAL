@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Teacher Portal - Student Roster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { "border-stable": "#E5E7EB", "primary": "#b61722", "secondary": "#555f6f", "tertiary": "#006765", "background": "#f9f9ff", "on-surface": "#151c27" } } }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-sans p-4 md:p-8 relative min-h-screen">
+
+    <!-- Login Modal Overlay -->
+    <div id="login-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-border-stable">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-extrabold text-slate-800">Teacher Login</h2>
+                <p class="text-sm text-secondary mt-1">Authenticate to view student roster</p>
+            </div>
+            <input type="text" id="t-user" placeholder="Username" class="w-full mb-4 p-3.5 bg-slate-50 border border-border-stable rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition" />
+            <input type="password" id="t-pass" placeholder="Password" class="w-full mb-6 p-3.5 bg-slate-50 border border-border-stable rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition" />
+            <button onclick="attemptLogin()" class="w-full bg-primary hover:bg-red-800 text-white p-3.5 rounded-xl font-bold transition shadow-sm">Access Portal</button>
+            <p id="login-error" class="text-red-600 text-sm mt-4 text-center hidden font-medium"></p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content (Hidden Until Authenticated) -->
+    <main id="main-content" class="max-w-[1024px] mx-auto space-y-6 hidden">
+        <header class="bg-white border border-border-stable p-6 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-800">Teacher Portal</h1>
+                <p class="text-secondary text-sm mt-1">Click any student row to expand and inspect their full progress details.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="logout()" class="text-sm font-bold text-secondary hover:text-slate-800 transition">Logout</button>
+                <span id="student-count" class="bg-red-50 text-primary text-xs font-bold px-3 py-1.5 rounded-full border border-red-200">Loading roster...</span>
+            </div>
+        </header>
+
+        <!-- Filtering & Tabs -->
+        <div class="bg-white p-4 rounded-xl border border-border-stable flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+            <div class="flex bg-slate-100 p-1 rounded-lg w-full sm:w-auto">
+                <button id="tab-enrolled" onclick="switchTab('Enrolled')" class="flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-md bg-white text-primary shadow-sm transition">Enrolled</button>
+                <button id="tab-passed" onclick="switchTab('Passed')" class="flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-md text-secondary hover:text-slate-800 transition">Passed</button>
+            </div>
+            
+            <div class="w-full sm:w-auto flex items-center gap-2">
+                <label class="text-xs font-bold text-secondary uppercase">Batch:</label>
+                <select id="batch-filter" onchange="renderRoster()" class="p-2 border border-border-stable rounded-lg font-medium text-sm text-slate-800 bg-slate-50 focus:outline-none focus:border-primary w-full sm:w-48">
+                    <option value="all">All Batches</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="loading-screen" class="text-center py-20 hidden">
+            <div class="animate-spin inline-block w-10 h-10 border-[4px] border-current border-t-transparent text-primary rounded-full mb-4"></div>
+            <h2 class="text-xl font-bold text-slate-800">Fetching Roster...</h2>
+        </div>
+
+        <div id="roster-container" class="space-y-4">
+            <!-- Populated via JavaScript -->
+        </div>
+    </main>
+
+    <script>
+        // Replace with your current deployment URL
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_7dD4vKmBBDYbCMy7ZEtzq5Kw96HKHiYmEubKsTXxuSf4Qk9zMT8BL86WorrN0gWY/exec";
+        
+        let allStudents = [];
+        let currentTab = 'Enrolled';
+        let credentials = { u: '', p: '' };
+
+        async function attemptLogin() {
+            const u = document.getElementById('t-user').value.trim();
+            const p = document.getElementById('t-pass').value.trim();
+            const errEl = document.getElementById('login-error');
+
+            if (!u || !p) {
+                errEl.textContent = "Please enter both username and password.";
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            errEl.classList.add('hidden');
+            credentials = { u, p };
+
+            // Show loading layout
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            document.getElementById('loading-screen').classList.remove('hidden');
+            document.getElementById('roster-container').classList.add('hidden');
+
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=get_all_users&u=${encodeURIComponent(u)}&p=${encodeURIComponent(p)}`);
+                const json = await res.json();
+
+                if (json.success) {
+                    allStudents = json.data;
+                    populateBatchFilter();
+                    renderRoster();
+                    document.getElementById('loading-screen').classList.add('hidden');
+                    document.getElementById('roster-container').classList.remove('hidden');
+                } else {
+                    throw new Error(json.message || "Invalid credentials");
+                }
+            } catch (err) {
+                // Reset UI on failure
+                document.getElementById('main-content').classList.add('hidden');
+                document.getElementById('login-modal').classList.remove('hidden');
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            credentials = { u: '', p: '' };
+            allStudents = [];
+            document.getElementById('t-user').value = '';
+            document.getElementById('t-pass').value = '';
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function populateBatchFilter() {
+            const filter = document.getElementById('batch-filter');
+            filter.innerHTML = '<option value="all">All Batches</option>';
+            const batches = [...new Set(allStudents.map(s => s.batch || "N/A"))].sort();
+            batches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                filter.appendChild(opt);
+            });
+        }
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // Style Tabs
+            const tabE = document.getElementById('tab-enrolled');
+            const tabP = document.getElementById('tab-passed');
+            
+            if (tabName === 'Enrolled') {
+                tabE.className = "flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-md bg-white text-primary shadow-sm transition";
+                tabP.className = "flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-md text-secondary hover:text-slate-800 transition";
+            } else {
+                tabP.className = "flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-md bg-white text-tertiary shadow-sm transition";
+                tabE.className = "flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-md text-secondary hover:text-slate-800 transition";
+            }
+            
+            renderRoster();
+        }
+
+        function renderRoster() {
+            const container = document.getElementById('roster-container');
+            const selectedBatch = document.getElementById('batch-filter').value;
+            container.innerHTML = '';
+
+            // Filter students by tab (status) and batch
+            const filtered = allStudents.filter(s => {
+                const matchesTab = (s.status === currentTab) || (currentTab === 'Enrolled' && s.status !== 'Passed');
+                const matchesBatch = selectedBatch === 'all' || (s.batch || 'N/A') === selectedBatch;
+                return matchesTab && matchesBatch;
+            });
+
+            document.getElementById('student-count').textContent = `${filtered.length} ${currentTab} Students`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 text-center rounded-xl border border-border-stable text-secondary shadow-sm">No students found matching this criteria.</div>`;
+                return;
+            }
+
+            filtered.forEach((student, index) => {
+                container.appendChild(createStudentCard(student, index));
+            });
+        }
+
+        async function passStudent(email, index) {
+            const btn = document.getElementById(`pass-btn-${index}`);
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Processing...';
+            btn.disabled = true;
+
+            try {
+                const payload = {
+                    action: "pass_student",
+                    u: credentials.u,
+                    p: credentials.p,
+                    email: email
+                };
+
+                const res = await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+
+                if (json.success) {
+                    // Update local state and re-render
+                    const studentIndex = allStudents.findIndex(s => s.email === email);
+                    if (studentIndex > -1) {
+                        allStudents[studentIndex].status = "Passed";
+                        renderRoster();
+                    }
+                } else {
+                    alert("Error: " + json.message);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                alert("Network error while updating status.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function createStudentCard(userData, index) {
+            const card = document.createElement('div');
+            card.className = "bg-white border border-border-stable rounded-xl shadow-sm overflow-hidden transition-all";
+
+            const parsed = userData.breakdown || {};
+            const stats = parsed.overallStats || {};
+            const vocabPct = stats.vocab?.percentage || 0;
+            const kanjiPct = stats.kanji?.percentage || 0;
+            const mastered = stats.overall?.mastered || 0;
+            const learning = stats.overall?.learning || 0;
+            const unseen = stats.overall?.unseen || 0;
+            const lastUpdated = parsed.lastUpdated ? new Date(parsed.lastUpdated).toLocaleString() : 'Never synced';
+
+            // Only show pass button on Enrolled tab
+            const passActionHtml = currentTab === 'Enrolled' ? `
+                <div class="mt-6 pt-4 border-t border-border-stable flex justify-end">
+                    <button id="pass-btn-${index}" onclick="passStudent('${userData.email}', ${index})" class="bg-tertiary hover:bg-teal-800 text-white px-5 py-2 rounded-lg font-bold text-sm shadow-sm transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Mark as Passed
+                    </button>
+                </div>
+            ` : '';
+
+            card.innerHTML = `
+                <div class="p-5 flex flex-col md:flex-row justify-between items-start md:items-center cursor-pointer hover:bg-slate-50 gap-4" onclick="toggleAccordion(${index})">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 border-2 border-slate-300 flex items-center justify-center text-slate-700 font-bold text-xl uppercase">
+                            ${(userData.name || "S")[0]}
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">${userData.name || "Unnamed Student"}</h2>
+                            <p class="text-secondary text-xs font-medium">${userData.email} • Batch: ${userData.batch || "N/A"}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-secondary">Mastered: <span class="text-primary">${mastered}</span></span>
+                            <p class="text-[11px] text-slate-400">Vocab: ${vocabPct}% | Kanji: ${kanjiPct}%</p>
+                        </div>
+                        <span id="icon-${index}" class="text-secondary font-bold transform transition-transform text-sm">▼</span>
+                    </div>
+                </div>
+
+                <div id="details-${index}" class="hidden border-t border-border-stable p-6 bg-slate-50 space-y-6">
+                    <div class="flex justify-between items-center text-xs text-secondary border-b border-gray-200 pb-2">
+                        <span>Last Synced: <strong class="text-slate-700">${lastUpdated}</strong></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white border border-border-stable p-5 rounded-xl shadow-sm space-y-4">
+                            <h3 class="text-xs font-bold text-secondary uppercase tracking-wider">Vocab & Kanji Progress</h3>
+                            <div>
+                                <div class="flex justify-between text-sm font-bold mb-1">
+                                    <span>Vocab Mastery</span>
+                                    <span class="text-primary">${vocabPct}%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-primary h-full" style="width: ${vocabPct}%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm font-bold mb-1">
+                                    <span>Kanji Mastery</span>
+                                    <span class="text-tertiary">${kanjiPct}%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-tertiary h-full" style="width: ${kanjiPct}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white border border-border-stable p-5 rounded-xl shadow-sm flex flex-col justify-center">
+                            <h3 class="text-xs font-bold text-secondary uppercase tracking-wider mb-2">Overall Database Split</h3>
+                            <p class="text-2xl font-extrabold text-primary mb-2">${mastered} <span class="text-xs font-bold text-secondary">Mastered Words</span></p>
+                            <div class="flex gap-3 text-xs font-bold text-secondary">
+                                <span class="bg-amber-50 text-amber-800 px-2.5 py-1 rounded-lg border border-amber-200">${learning} Learning</span>
+                                <span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-200">${unseen} Unseen</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white border border-border-stable rounded-xl p-5 shadow-sm">
+                            <h3 class="text-sm font-bold mb-3 text-slate-800">Lesson Breakdown</h3>
+                            <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                                ${renderLessonList(parsed.lessonBreakdown)}
+                            </div>
+                        </div>
+
+                        <div class="bg-white border border-border-stable rounded-xl p-5 shadow-sm">
+                            <h3 class="text-sm font-bold mb-1 text-red-700">Troublesome Words</h3>
+                            <p class="text-[11px] text-secondary mb-3">Words with recorded errors.</p>
+                            <div class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                                ${renderTroubleList(parsed.troublesomeWords)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pass Student Button Footer -->
+                    ${passActionHtml}
+                </div>
+            `;
+            return card;
+        }
+
+        function renderLessonList(lessons) {
+            if (!Array.isArray(lessons) || lessons.length === 0) return `<p class="text-xs text-secondary">No lesson breakdown recorded.</p>`;
+            return lessons.map(l => {
+                const pct = Math.round((l.mastered / l.total) * 100) || 0;
+                const typeLabel = l.type === 'kanji' ? 'KANJI' : 'VOCAB';
+                const typeColor = l.type === 'kanji' ? 'text-tertiary bg-tertiary/10' : 'text-primary bg-primary/10';
+                const barColor = l.type === 'kanji' ? 'bg-tertiary' : 'bg-primary';
+                const labelStr = isNaN(parseInt(l.id)) ? l.id : `Lesson ${l.id}`;
+                const cleanName = l.name ? (l.name.includes(':') ? l.name.split(':')[1] : l.name) : '';
+
+                return `
+                    <div class="border-b border-gray-100 pb-2.5 last:border-0 text-xs">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-on-surface flex items-center gap-1.5">
+                                <span class="text-[9px] font-bold px-1 py-0.5 rounded-sm ${typeColor}">${typeLabel}</span>
+                                ${labelStr} <span class="font-normal text-secondary">${cleanName ? `— ${cleanName}` : ''}</span>
+                            </span>
+                            <span class="font-mono text-secondary font-bold">${l.mastered}/${l.total} (${pct}%)</span>
+                        </div>
+                        <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                            <div class="${barColor} h-full" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTroubleList(troubleWords) {
+            if (!Array.isArray(troubleWords) || troubleWords.length === 0) return `<p class="text-xs text-secondary text-center py-4">No troublesome words logged!</p>`;
+            return troubleWords.map(w => {
+                const targetRomaji = w.romaji || w.correctAnswerRomaji || '';
+                const targetMeaning = w.meaningEnglish || w.translationEnglish || w.meaning || '';
+                return `
+                    <div class="p-2.5 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center text-xs">
+                        <div>
+                            <p class="font-bold text-red-900 text-base">${w.kanji || w.japanese}</p>
+                            <p class="text-[11px] font-mono text-secondary">${targetRomaji} • ${targetMeaning}</p>
+                        </div>
+                        <div class="bg-white px-2 py-1 rounded border border-red-200 font-bold text-red-700 text-[11px]">
+                            Fails: ${w.stats ? w.stats.incorrect : 0}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleAccordion(index) {
+            const details = document.getElementById(`details-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                details.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+    </script>
+</body>
+</html>
